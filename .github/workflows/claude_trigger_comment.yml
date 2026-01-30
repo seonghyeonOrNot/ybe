@@ -15,7 +15,7 @@ jobs:
       - name: Add @claude trigger comment
         uses: actions/github-script@v7
         with:
-          github-token: ${{ github.token }}
+          github-token: ${{ secrets.YBE_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
