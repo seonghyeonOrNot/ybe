@@ -1,0 +1,31 @@
+name: Notion → GitHub Issue Sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *" # 30분마다
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install deps
+        run: npm install @notionhq/client
+
+      - name: Run sync
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_TICKET_DATABASE_ID: ${{ secrets.NOTION_TICKET_DATABASE_ID }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_OWNER: ${{ secrets.GH_OWNER }}
+          GH_REPO: ${{ secrets.GH_REPO }}
+        run: node scripts/notion_to_github_issue.mjs
