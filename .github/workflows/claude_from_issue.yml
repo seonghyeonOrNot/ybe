@@ -1,23 +1,95 @@
-name: Claude - Create PR from Issue
+name: Claude - PR from Issue (Guarded)
 
 on:
   issues:
     types: [labeled]
 
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: claude-from-issue
+  cancel-in-progress: false
+
 jobs:
   claude:
+    # 1차 가드: 라벨이 ready-for-claude일 때만
     if: github.event.label.name == 'ready-for-claude'
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
 
     steps:
       - uses: actions/checkout@v4
 
+      # --- 가드레일 1: 중복 실행 방지 ---
+      - name: Guard - Skip if already processed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          LABELS=$(gh api repos/${{ github.repository }}/issues/${{ github.event.issue.number }} --jq '.labels[].name' | tr '\n' ' ')
+          echo "Labels: $LABELS"
+
+          if echo "$LABELS" | grep -q "claude-in-progress"; then
+            echo "Already in progress. Skipping."
+            exit 0
+          fi
+
+          if echo "$LABELS" | grep -q "claude-pr-created"; then
+            echo "Already done. Skipping."
+            exit 0
+          fi
+
+      # --- 가드레일 2: 하루 실행 횟수 제한 (비용 폭주 방지) ---
+      # 기본값 DAILY_LIMIT=10 (원하면 숫자만 바꿔)
+      - name: Guard - Daily run limit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DAILY_LIMIT: "10"
+        run: |
+          set -e
+          TODAY_UTC=$(date -u +%F)
+          echo "Today(UTC): $TODAY_UTC"
+
+          # 오늘 생성된 claude-pr-created 라벨 달린 이슈/PR 개수로 제한
+          COUNT=$(gh api /search/issues -f q="repo:${{ github.repository }} label:claude-pr-created created:${TODAY_UTC}" --jq '.total_count')
+          echo "Today's claude completed count: $COUNT / limit: $DAILY_LIMIT"
+
+          if [ "$COUNT" -ge "$DAILY_LIMIT" ]; then
+            echo "Daily limit reached. Marking skipped."
+            gh api -X POST repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels -f labels[]="claude-skipped"
+            exit 0
+          fi
+
+      # --- 가드레일 3: 진행 상태 라벨링 ---
+      - name: Mark in-progress
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X POST repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels -f labels[]="claude-in-progress"
+
+      # --- 실제 실행: Claude가 PR 생성 ---
       - name: Claude Code Action
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      # --- 성공 처리: 라벨 정리 ---
+      - name: Mark success
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X POST repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels -f labels[]="claude-pr-created"
+          gh api -X DELETE repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels/claude-in-progress || true
+          gh api -X DELETE repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels/claude-failed || true
+
+      # --- 실패 처리: 라벨 정리 ---
+      - name: Mark failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api -X POST repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels -f labels[]="claude-failed"
+          gh api -X DELETE repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels/claude-in-progress || true
