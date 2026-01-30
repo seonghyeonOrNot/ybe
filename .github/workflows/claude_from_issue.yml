@@ -45,6 +45,7 @@ jobs:
       # 기본값 DAILY_LIMIT=10 (원하면 숫자만 바꿔)
       - name: Guard - Daily run limit
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           GH_TOKEN: ${{ github.token }}
           DAILY_LIMIT: "10"
         run: |
@@ -52,8 +53,10 @@ jobs:
           TODAY_UTC=$(date -u +%F)
           echo "Today(UTC): $TODAY_UTC"
 
-          # 오늘 생성된 claude-pr-created 라벨 달린 이슈/PR 개수로 제한
-          COUNT=$(gh api /search/issues -f q="repo:${{ github.repository }} label:claude-pr-created created:${TODAY_UTC}" --jq '.total_count')
+          Q="repo:${{ github.repository }} label:claude-pr-created created:${TODAY_UTC}"
+          echo "Query: $Q"
+
+          COUNT=$(gh api "search/issues" -f q="$Q" --jq '.total_count')
           echo "Today's claude completed count: $COUNT / limit: $DAILY_LIMIT"
 
           if [ "$COUNT" -ge "$DAILY_LIMIT" ]; then
@@ -61,6 +64,8 @@ jobs:
             gh api -X POST repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels -f labels[]="claude-skipped"
             exit 0
           fi
+
+
 
       # --- 가드레일 3: 진행 상태 라벨링 ---
       - name: Mark in-progress
