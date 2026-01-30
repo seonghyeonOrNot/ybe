@@ -43,27 +43,49 @@ jobs:
 
       # --- 가드레일 2: 하루 실행 횟수 제한 (비용 폭주 방지) ---
       # 기본값 DAILY_LIMIT=10 (원하면 숫자만 바꿔)
+
       - name: Guard - Daily run limit
+        uses: actions/github-script@v7
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GH_TOKEN: ${{ github.token }}
-          DAILY_LIMIT: "10"
-        run: |
-          set -e
-          TODAY_UTC=$(date -u +%F)
-          echo "Today(UTC): $TODAY_UTC"
+          DAILY_LIMIT: "3"
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const dailyLimit = parseInt(process.env.DAILY_LIMIT || "3", 10);
 
-          Q="repo:${{ github.repository }} label:claude-pr-created created:${TODAY_UTC}"
-          echo "Query: $Q"
+            // UTC 기준 오늘 날짜 YYYY-MM-DD
+            const now = new Date();
+            const yyyy = now.getUTCFullYear();
+            const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
+            const dd = String(now.getUTCDate()).padStart(2, "0");
+            const today = `${yyyy}-${mm}-${dd}`;
 
-          COUNT=$(gh api "search/issues" -f q="$Q" --jq '.total_count')
-          echo "Today's claude completed count: $COUNT / limit: $DAILY_LIMIT"
+            const repoFull = process.env.GITHUB_REPOSITORY; // owner/repo
+            const q = `repo:${repoFull} label:claude-pr-created created:${today}`;
 
-          if [ "$COUNT" -ge "$DAILY_LIMIT" ]; then
-            echo "Daily limit reached. Marking skipped."
-            gh api -X POST repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels -f labels[]="claude-skipped"
-            exit 0
-          fi
+            core.info(`Today(UTC): ${today}`);
+            core.info(`Query: ${q}`);
+
+            const res = await github.rest.search.issuesAndPullRequests({ q });
+            const count = res.data.total_count;
+
+            core.info(`Today's claude completed count: ${count} / limit: ${dailyLimit}`);
+
+            if (count >= dailyLimit) {
+              core.info("Daily limit reached. Labeling claude-skipped and stopping.");
+
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: ["claude-skipped"],
+              });
+
+              // 워크플로를 "정상 종료"시키되 이후 스텝 진행은 막기 위해 실패로 종료
+              // (원하면 여기서 core.setFailed 대신 return 으로 바꿀 수도 있어)
+              return;
+            }
+
 
 
 
