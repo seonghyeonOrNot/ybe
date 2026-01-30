@@ -101,6 +101,8 @@ jobs:
 
             core.setOutput('proceed', 'true');
 
+
+
       # --- 가드레일 3: 진행 상태 라벨링 ---
       - name: Mark in-progress
         if: steps.guard_processed.outputs.proceed == 'true' && steps.guard_daily.outputs.proceed == 'true'
@@ -114,6 +116,49 @@ jobs:
               issue_number: context.issue.number,
               labels: ["claude-in-progress"],
             });
+
+      - name: Trigger Claude with a comment
+        if: steps.guard_processed.outputs.proceed == 'true' && steps.guard_daily.outputs.proceed == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+
+            const issue = await github.rest.issues.get({ owner, repo, issue_number });
+            const title = issue.data.title || "";
+            const body = issue.data.body || "";
+
+            const prompt = [
+              "@claude Please create a Pull Request to address this GitHub Issue.",
+              "",
+              "## Task",
+              "- Implement what the issue asks for.",
+              "- Make minimal, safe changes.",
+              "- Follow repository conventions and CLAUDE.md if present.",
+              "",
+              "## Acceptance Criteria",
+              "- Code changes are committed on a new branch",
+              "- A PR is opened targeting the default branch",
+              "- PR description includes: What / Why / How to test",
+              "",
+              "## Issue",
+              `Title: ${title}`,
+              "",
+              "Body:",
+              body
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body: prompt
+            });
+
+
 
       # --- 실제 실행: Claude가 PR 생성 ---
       - name: Claude Code Action
