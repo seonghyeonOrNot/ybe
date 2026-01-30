@@ -9,42 +9,50 @@ permissions:
   pull-requests: write
   issues: write
 
+# 같은 이슈에서 동시에 여러 번 도는 것 방지
 concurrency:
-  group: claude-from-issue
+  group: claude-from-issue-${{ github.event.issue.number }}
   cancel-in-progress: false
 
 jobs:
   claude:
-    # 1차 가드: 라벨이 ready-for-claude일 때만
     if: github.event.label.name == 'ready-for-claude'
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      # --- 가드레일 1: 중복 실행 방지 ---
+      # --- 가드레일 1: 중복 실행 방지 + 진행 여부 결정 ---
       - name: Guard - Skip if already processed
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -e
-          LABELS=$(gh api repos/${{ github.repository }}/issues/${{ github.event.issue.number }} --jq '.labels[].name' | tr '\n' ' ')
-          echo "Labels: $LABELS"
+        id: guard_processed
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
 
-          if echo "$LABELS" | grep -q "claude-in-progress"; then
-            echo "Already in progress. Skipping."
-            exit 0
-          fi
+            const issue = await github.rest.issues.get({ owner, repo, issue_number });
+            const labels = (issue.data.labels || []).map(l => typeof l === 'string' ? l : l.name);
 
-          if echo "$LABELS" | grep -q "claude-pr-created"; then
-            echo "Already done. Skipping."
-            exit 0
-          fi
+            core.info(`Labels: ${labels.join(', ')}`);
+
+            const inProgress = labels.includes('claude-in-progress');
+            const done = labels.includes('claude-pr-created');
+
+            if (inProgress || done) {
+              core.info(`Skipping. inProgress=${inProgress}, done=${done}`);
+              core.setOutput('proceed', 'false');
+              return;
+            }
+
+            core.setOutput('proceed', 'true');
 
       # --- 가드레일 2: 하루 실행 횟수 제한 (비용 폭주 방지) ---
-      # 기본값 DAILY_LIMIT=10 (원하면 숫자만 바꿔)
-
       - name: Guard - Daily run limit
+        id: guard_daily
+        if: steps.guard_processed.outputs.proceed == 'true'
         uses: actions/github-script@v7
         env:
           DAILY_LIMIT: "3"
@@ -71,52 +79,81 @@ jobs:
 
             core.info(`Today's claude completed count: ${count} / limit: ${dailyLimit}`);
 
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+
             if (count >= dailyLimit) {
               core.info("Daily limit reached. Labeling claude-skipped and stopping.");
 
               await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.issue.number,
+                owner,
+                repo,
+                issue_number,
                 labels: ["claude-skipped"],
               });
 
-              // 워크플로를 "정상 종료"시키되 이후 스텝 진행은 막기 위해 실패로 종료
-              // (원하면 여기서 core.setFailed 대신 return 으로 바꿀 수도 있어)
+              core.setOutput('proceed', 'false');
               return;
             }
 
-
-
+            core.setOutput('proceed', 'true');
 
       # --- 가드레일 3: 진행 상태 라벨링 ---
       - name: Mark in-progress
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api -X POST repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels -f labels[]="claude-in-progress"
+        if: steps.guard_processed.outputs.proceed == 'true' && steps.guard_daily.outputs.proceed == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ["claude-in-progress"],
+            });
 
       # --- 실제 실행: Claude가 PR 생성 ---
       - name: Claude Code Action
+        if: steps.guard_processed.outputs.proceed == 'true' && steps.guard_daily.outputs.proceed == 'true'
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
 
       # --- 성공 처리: 라벨 정리 ---
       - name: Mark success
-        if: success()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api -X POST repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels -f labels[]="claude-pr-created"
-          gh api -X DELETE repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels/claude-in-progress || true
-          gh api -X DELETE repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels/claude-failed || true
+        if: success() && steps.guard_processed.outputs.proceed == 'true' && steps.guard_daily.outputs.proceed == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+
+            await github.rest.issues.addLabels({
+              owner, repo, issue_number,
+              labels: ["claude-pr-created"],
+            });
+
+            // 진행중/실패 라벨 정리
+            try { await github.rest.issues.removeLabel({ owner, repo, issue_number, name: "claude-in-progress" }); } catch(e) {}
+            try { await github.rest.issues.removeLabel({ owner, repo, issue_number, name: "claude-failed" }); } catch(e) {}
 
       # --- 실패 처리: 라벨 정리 ---
       - name: Mark failure
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh api -X POST repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels -f labels[]="claude-failed"
-          gh api -X DELETE repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/labels/claude-in-progress || true
+        if: failure() && steps.guard_processed.outputs.proceed == 'true' && steps.guard_daily.outputs.proceed == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+
+            await github.rest.issues.addLabels({
+              owner, repo, issue_number,
+              labels: ["claude-failed"],
+            });
+
+            try { await github.rest.issues.removeLabel({ owner, repo, issue_number, name: "claude-in-progress" }); } catch(e) {}
