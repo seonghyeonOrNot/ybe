@@ -1,0 +1,51 @@
+name: Claude - Trigger Comment
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+
+jobs:
+  comment:
+    if: github.event.label.name == 'ready-for-claude'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add @claude trigger comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+
+            const issue = await github.rest.issues.get({ owner, repo, issue_number });
+            const title = issue.data.title || "";
+            const body = issue.data.body || "";
+
+            const prompt = [
+              "@claude Please create a Pull Request to address this GitHub Issue.",
+              "",
+              "## Task",
+              "- Implement what the issue asks for.",
+              "- Make minimal, safe changes.",
+              "- Follow repository conventions and CLAUDE.md if present.",
+              "",
+              "## Acceptance Criteria",
+              "- Code changes are committed on a new branch",
+              "- A PR is opened targeting the default branch",
+              "- PR description includes: What / Why / How to test",
+              "",
+              "## Issue",
+              `Title: ${title}`,
+              "",
+              "Body:",
+              body
+            ].join("\n");
+
+            await github.rest.issues.createComment({
+              owner, repo, issue_number,
+              body: prompt
+            });
