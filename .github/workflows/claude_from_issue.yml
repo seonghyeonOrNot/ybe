@@ -5,9 +5,11 @@ on:
     types: [labeled]
 
 permissions:
+  id-token: write
   contents: write
   pull-requests: write
   issues: write
+
 
 # 같은 이슈에서 동시에 여러 번 도는 것 방지
 concurrency:
@@ -119,6 +121,8 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+
 
       # --- 성공 처리: 라벨 정리 ---
       - name: Mark success
