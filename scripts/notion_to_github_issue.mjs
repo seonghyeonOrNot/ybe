@@ -100,6 +100,9 @@ async function main() {
     const labels = [];
     if (priority) labels.push(priority.toLowerCase());
 
+    // ✅ 이거 추가
+    labels.push("ready-for-claude");
+
     const body = `
 ### 📌 Notion
 - Page: ${page.url}
