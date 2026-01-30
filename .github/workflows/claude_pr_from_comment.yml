@@ -1,0 +1,96 @@
+name: Claude - PR from Comment
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  id-token: write
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: claude-from-comment-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  claude:
+    # 댓글에 @claude가 포함될 때만 실행
+    if: contains(github.event.comment.body, '@claude')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # (선택) ready-for-claude 라벨이 있을 때만 진행 (안전)
+      - name: Guard - Require ready-for-claude label
+        id: guard_label
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+            const issue = await github.rest.issues.get({ owner, repo, issue_number });
+            const labels = (issue.data.labels || []).map(l => typeof l === 'string' ? l : l.name);
+
+            const ok = labels.includes('ready-for-claude');
+            core.setOutput('ok', ok ? 'true' : 'false');
+            if (!ok) core.info('Skip: ready-for-claude label not found');
+
+      - name: Mark in-progress
+        if: steps.guard_label.outputs.ok == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ["claude-in-progress"],
+            });
+
+      - name: Claude Code Action
+        if: steps.guard_label.outputs.ok == 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ github.token }}
+
+      - name: Mark success
+        if: success() && steps.guard_label.outputs.ok == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+
+            await github.rest.issues.addLabels({
+              owner, repo, issue_number,
+              labels: ["claude-pr-created"],
+            });
+
+            try { await github.rest.issues.removeLabel({ owner, repo, issue_number, name: "claude-in-progress" }); } catch(e) {}
+            try { await github.rest.issues.removeLabel({ owner, repo, issue_number, name: "claude-failed" }); } catch(e) {}
+
+      - name: Mark failure
+        if: failure() && steps.guard_label.outputs.ok == 'true'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+
+            await github.rest.issues.addLabels({
+              owner, repo, issue_number,
+              labels: ["claude-failed"],
+            });
+
+            try { await github.rest.issues.removeLabel({ owner, repo, issue_number, name: "claude-in-progress" }); } catch(e) {}
