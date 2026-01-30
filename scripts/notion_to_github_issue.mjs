@@ -1,4 +1,5 @@
-import { Client } from "@notionhq/client";
+import notionSdk from "@notionhq/client";
+const { Client } = notionSdk;
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
