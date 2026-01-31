@@ -16,13 +16,12 @@ jobs:
       - name: Add @claude guide trigger comment
         uses: actions/github-script@v7
         with:
-          # 중요: github.token 말고 PAT(네 repo secrets의 GH_TOKEN) 사용해야
-          # 이 댓글이 "다음 workflow(issue_comment)"를 트리거함
+          # 중요: PAT(GH_TOKEN) 사용해야 issue_comment 워크플로가 연쇄로 트리거됨
           github-token: ${{ secrets.GH_TOKEN }}
           script: |
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-            const issue_number = context.issue.number;
+            const issue_number = context.payload.issue.number;
 
             const issue = await github.rest.issues.get({ owner, repo, issue_number });
             const title = issue.data.title || "";
@@ -31,25 +30,23 @@ jobs:
             const prompt = `
             @claude 이용가이드 문서를 생성해줘.
 
-            ## 목표
-            - 아래 이슈(노션 링크 포함)를 기반으로 "이용가이드"를 작성한다.
+            ## 규칙
             - 코드 변경 금지. 문서만 변경.
             - PR 생성 금지. (브랜치 + 커밋까지만)
 
-            ## 출력 위치(필수)
-            - docs/guide/ 아래에 마크다운 파일 1개 생성
-            - 파일명 규칙: docs/guide/issue-${issue_number}-guide.md
+            ## 출력 파일
+            - docs/guide/issue-${issue_number}-guide.md (신규 생성)
 
-            ## 이용가이드 템플릿(반드시 이 순서)
-            1. 개요(무엇을 해결하는가)
-            2. 대상 사용자(관리자/사용자/공통)
+            ## 템플릿(이 순서 고정)
+            1. 개요
+            2. 대상 사용자
             3. 사용 방법(단계별)
-            4. 화면/메뉴 경로(가능하면)
-            5. 주의사항/제한(정책/권한/엣지케이스)
+            4. 화면/메뉴 경로
+            5. 주의사항/제한
             6. FAQ(최소 5개)
-            7. 관련 이슈/문서 링크
+            7. 관련 링크
 
-            ## 이슈 정보
+            ## 이슈
             Title: ${title}
 
             Body:
@@ -60,11 +57,3 @@ jobs:
               owner, repo, issue_number,
               body: prompt
             });
-
-            // (선택) 진행 라벨 붙이기
-            try {
-              await github.rest.issues.addLabels({
-                owner, repo, issue_number,
-                labels: ["guide-in-progress"],
-              });
-            } catch (e) {}
