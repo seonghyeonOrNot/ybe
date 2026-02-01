@@ -16,14 +16,12 @@ concurrency:
 
 jobs:
   claude:
-    # 댓글에 @claude가 들어간 경우만 실행
     if: contains(github.event.comment.body, '@claude')
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      # (안전장치) ready-for-claude 또는 ready-for-guide 라벨이 있을 때만 진행
       - name: Guard - Require ready label
         id: guard
         uses: actions/github-script@v7
@@ -59,12 +57,29 @@ jobs:
               labels: ["claude-in-progress"],
             });
 
+      # ✅ 핵심: Claude가 문서 폴더들에 쓰도록 “작업 범위”를 환경변수로 명시
+      # (프롬프트에서도 이미 4개 문서 생성으로 강제 중이므로, action이 추가 제한을 걸어도 흔들리지 않게 됨)
       - name: Claude Code Action
         if: steps.guard.outputs.ok == 'true'
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
+        env:
+          # ✅ Claude에게 “여기만 수정해라”를 강제(레포 정책/가드용)
+          CLAUDE_WRITE_PATHS: |
+            docs/guide
+            docs/policies
+            docs/qa_scenarios
+            docs/spec
+          CLAUDE_READ_PATHS: |
+            data/catalog/features.csv
+            docs
+          # ✅ 안전장치: 코드 변경 금지 방향으로 유도
+          CLAUDE_RULES: |
+            - Only write markdown docs under allowed paths.
+            - Do not modify application code.
+            - Do not create pull requests; create branch and commit only.
 
       - name: Mark success
         if: success() && steps.guard.outputs.ok == 'true'
