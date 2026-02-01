@@ -50,6 +50,15 @@ function readCheckbox(props, name) {
   return !!p.checkbox;
 }
 
+// ✅ 추가: Notion rich_text / title 공통으로 텍스트 읽기 (catalog_query 대응)
+function readRichOrTitleText(props, name) {
+  const p = getProp(props, name);
+  if (!p) return "";
+  if (p.type === "rich_text") return getPlainText(p.rich_text);
+  if (p.type === "title") return getPlainText(p.title);
+  return "";
+}
+
 async function createGithubIssue({ title, body, labels = [] }) {
   const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/issues`, {
     method: "POST",
@@ -67,6 +76,23 @@ async function createGithubIssue({ title, body, labels = [] }) {
     throw new Error(`GitHub Issue 생성 실패: ${res.status} ${text}`);
   }
   return await res.json();
+}
+
+function buildCatalogBlock(catalogQuery) {
+  const catalogFile = "data/catalog/features.csv";
+
+  return `
+## Catalog Reference (MUST USE)
+- File: ${catalogFile}
+- Query:
+${catalogQuery || "(empty)"}
+
+## Claude Instructions
+1) 먼저 ${catalogFile} 를 Query로 검색해 관련 기능 3~5개를 요약해라.
+2) 그 기능들에서 용어/정책/절차를 재사용해 문서를 작성해라.
+3) 이슈 내용과 카탈로그가 다르면 "변경점" 섹션에 차이를 표로 기록해라.
+4) 매칭 실패하면 "카탈로그 매칭 실패"라고 쓰고, 어떤 키워드로 찾았는지 남겨라.
+`.trim();
 }
 
 async function main() {
@@ -94,19 +120,40 @@ async function main() {
     const status = readStatus(props, "Status");
     const issueCreated = readCheckbox(props, "Issue Created?");
 
+    // ✅ Phase 2 핵심: Notion에서 catalog_query 읽기
+    // Notion DB에 "catalog_query" (rich_text) 속성을 추가해둬야 함
+    const catalogQuery = readRichOrTitleText(props, "catalog_query");
+
     console.log(`\n---\n📌 ${featureName}`);
     console.log(`Status=${status}, IssueCreated=${issueCreated}`);
+    console.log(`CatalogQuery=${catalogQuery ? "OK" : "EMPTY"}`);
 
     const labels = [];
     if (priority) labels.push(priority.toLowerCase());
 
-    // ✅ 이거 추가
+    // ✅ Claude 자동화 트리거 라벨
     labels.push("ready-for-claude");
 
+    // ✅ catalog_query가 비어 있으면 운영 안전장치 라벨
+    if (!catalogQuery) labels.push("needs-catalog-query");
+
+    const specId =
+      props?.Spec_ID?.type === "unique_id"
+        ? props.Spec_ID.unique_id?.prefix + props.Spec_ID.unique_id?.number
+        : props?.Spec_ID?.type === "auto_increment_id"
+          ? props.Spec_ID.auto_increment_id
+          : "-";
+
+    const catalogBlock = buildCatalogBlock(catalogQuery);
+
     const body = `
+${catalogBlock}
+
+---
+
 ### 📌 Notion
 - Page: ${page.url}
-- Spec_ID: ${props?.Spec_ID?.type === "unique_id" ? props.Spec_ID.unique_id?.prefix + props.Spec_ID.unique_id?.number : (props?.Spec_ID?.type === "auto_increment_id" ? props.Spec_ID.auto_increment_id : "-")}
+- Spec_ID: ${specId}
 
 ### ✅ Summary
 ${summary || "-"}
