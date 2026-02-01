@@ -1,0 +1,54 @@
+name: Sync Google Sheet (Public CSV) to Repo
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *" # 매일 11:00 KST 근처(UTC 02:00)
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download CSV from Google Sheet (public)
+        env:
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          SHEET_GID: ${{ secrets.SHEET_GID }}
+        run: |
+          set -e
+          mkdir -p data/catalog
+
+          URL="https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${SHEET_GID}"
+
+          echo "Downloading: $URL"
+          curl -L --fail "$URL" -o data/catalog/features.csv
+
+          echo "Downloaded bytes:"
+          wc -c data/catalog/features.csv
+
+      - name: Basic sanity check (not HTML)
+        run: |
+          set -e
+          head -n 2 data/catalog/features.csv
+          # 만약 공유가 제대로 안 됐거나, 로그인 페이지를 받으면 HTML이 내려올 수 있음
+          if head -n 5 data/catalog/features.csv | grep -qi "<html"; then
+            echo "ERROR: Downloaded HTML instead of CSV. Check sharing settings or gid."
+            exit 1
+          fi
+
+      - name: Commit changes if any
+        run: |
+          if git status --porcelain | grep .; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/catalog/features.csv
+            git commit -m "chore: sync sheet catalog (public csv)"
+            git push
+          else
+            echo "No changes."
+          fi
