@@ -1,1 +1,13 @@
+{
+  "version": 1,
+  "writing": {
+    "allow": [
+      "docs/guide/**",
+      "docs/policies/**",
+      "docs/qa_scenarios/**",
+      "docs/spec/**",
+      "data/catalog/**"
+    ]
+  }
+}
 
