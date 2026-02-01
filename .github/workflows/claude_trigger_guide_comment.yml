@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Add @claude guide trigger comment
+      - name: Add @claude guide trigger comment (with catalog query)
         uses: actions/github-script@v7
         with:
           # 중요: PAT(GH_TOKEN) 사용해야 issue_comment 워크플로가 연쇄로 트리거됨
@@ -27,8 +27,43 @@ jobs:
             const title = issue.data.title || "";
             const body = issue.data.body || "";
 
+            // --- 중복 댓글 방지: 이미 가이드 트리거 댓글이 있으면 스킵 ---
+            const comments = await github.rest.issues.listComments({ owner, repo, issue_number, per_page: 100 });
+            const already = comments.data.some(c => (c.body || "").includes("@claude 이용가이드 문서를 생성해줘."));
+            if (already) {
+              console.log("Already commented, skip.");
+              return;
+            }
+
+            // --- Phase 2: Issue 본문에서 Catalog Query 파싱 ---
+            function extractCatalogQuery(issueBody) {
+              // "- Query:" 다음 줄부터 다음 "##" 또는 "---" 전까지
+              const m = issueBody.match(/- Query:\s*\n([\s\S]*?)(\n##|\n---|$)/i);
+              if (!m) return "";
+              return (m[1] || "").trim();
+            }
+
+            const catalogFile = "data/catalog/features.csv";
+            const catalogQuery = extractCatalogQuery(body);
+
+            const catalogHeader = `
+            ## Catalog (MUST USE FIRST)
+            - File: ${catalogFile}
+            - Query:
+            ${catalogQuery || "(empty) - you must state '카탈로그 매칭 실패' and list attempted keywords"}
+            `.trim();
+
             const prompt = `
             @claude 이용가이드 문서를 생성해줘.
+
+            ${catalogHeader}
+
+            ## 필수 작업 순서(강제)
+            1) 위 Query로 ${catalogFile} 를 먼저 검색해서 관련 기능 3~5개 행을 뽑아라.
+            2) 문서 최상단에 "카탈로그 참고 결과" 섹션을 만들고, 뽑은 행을 feature_id/대메뉴/중메뉴/소메뉴/요약 형태로 나열해라.
+            3) 그 행들의 용어/정책/절차를 재사용해 아래 템플릿으로 가이드를 작성해라.
+            4) 이슈 내용이 카탈로그와 다르면 "변경점" 섹션에 (카탈로그 vs 이슈) 차이를 표로 기록해라.
+            5) 카탈로그 매칭 실패 시: "카탈로그 매칭 실패"라고 명시하고 어떤 키워드로 찾았는지 남겨라.
 
             ## 규칙
             - 코드 변경 금지. 문서만 변경.
