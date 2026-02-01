@@ -50,7 +50,7 @@ function readCheckbox(props, name) {
   return !!p.checkbox;
 }
 
-// ✅ 추가: Notion rich_text / title 공통으로 텍스트 읽기 (catalog_query 대응)
+// Notion rich_text / title 텍스트 공통 읽기 (catalog_query용)
 function readRichOrTitleText(props, name) {
   const p = getProp(props, name);
   if (!p) return "";
@@ -80,7 +80,6 @@ async function createGithubIssue({ title, body, labels = [] }) {
 
 function buildCatalogBlock(catalogQuery) {
   const catalogFile = "data/catalog/features.csv";
-
   return `
 ## Catalog Reference (MUST USE)
 - File: ${catalogFile}
@@ -89,9 +88,10 @@ ${catalogQuery || "(empty)"}
 
 ## Claude Instructions
 1) 먼저 ${catalogFile} 를 Query로 검색해 관련 기능 3~5개를 요약해라.
-2) 그 기능들에서 용어/정책/절차를 재사용해 문서를 작성해라.
-3) 이슈 내용과 카탈로그가 다르면 "변경점" 섹션에 차이를 표로 기록해라.
-4) 매칭 실패하면 "카탈로그 매칭 실패"라고 쓰고, 어떤 키워드로 찾았는지 남겨라.
+2) 문서 최상단에 "카탈로그 참고 결과" 섹션을 만들고, 뽑은 행을 feature_id/대메뉴/중메뉴/소메뉴/요약 형태로 나열해라.
+3) 그 행들의 용어/정책/절차를 재사용해 가이드를 작성해라.
+4) 이슈 내용과 카탈로그가 다르면 "변경점" 섹션에 (카탈로그 vs 이슈) 차이를 표로 기록해라.
+5) 매칭 실패하면 "카탈로그 매칭 실패"라고 쓰고, 어떤 키워드로 찾았는지 남겨라.
 `.trim();
 }
 
@@ -120,8 +120,7 @@ async function main() {
     const status = readStatus(props, "Status");
     const issueCreated = readCheckbox(props, "Issue Created?");
 
-    // ✅ Phase 2 핵심: Notion에서 catalog_query 읽기
-    // Notion DB에 "catalog_query" (rich_text) 속성을 추가해둬야 함
+    // Phase 2: catalog_query 읽기 (Notion DB에 catalog_query 속성 필요)
     const catalogQuery = readRichOrTitleText(props, "catalog_query");
 
     console.log(`\n---\n📌 ${featureName}`);
@@ -131,10 +130,10 @@ async function main() {
     const labels = [];
     if (priority) labels.push(priority.toLowerCase());
 
-    // ✅ Claude 자동화 트리거 라벨
-    labels.push("ready-for-claude");
+    // ✅ 라벨 통일: 가이드 생성 트리거
+    labels.push("ready-for-guide");
 
-    // ✅ catalog_query가 비어 있으면 운영 안전장치 라벨
+    // ✅ catalog_query 없으면 안전장치 라벨
     if (!catalogQuery) labels.push("needs-catalog-query");
 
     const specId =
