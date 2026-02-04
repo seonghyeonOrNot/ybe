@@ -68,24 +68,18 @@ jobs:
 
           # ✅ allowedTools: 구식(:*) 문법 금지 / quoting 깨짐 방지 위해 멀티라인으로 정리
           # ✅ Bash 허용은 최소한만 (필요하면 패턴 추가)
-          claude_args: >
-            --allowedTools Read
-            --allowedTools Write
-            --allowedTools Edit
-            --allowedTools MultiEdit
-            --allowedTools Glob
-            --allowedTools Grep
-            --allowedTools LS
+          claude_args: >-
+            --allowedTools Read,Write,Edit,MultiEdit,Glob,Grep,LS
             --allowedTools mcp__github_comment__update_claude_comment
-            --allowedTools mcp__github_ci__get_ci_status
-            --allowedTools mcp__github_ci__get_workflow_run_details
-            --allowedTools mcp__github_ci__download_job_log
-            --allowedTools "Bash(git status *)"
-            --allowedTools "Bash(git diff *)"
-            --allowedTools "Bash(git log *)"
-            --allowedTools "Bash(git add *)"
-            --allowedTools "Bash(git commit *)"
-            --allowedTools "Bash(git push *)"
+            --allowedTools mcp__github_ci__get_ci_status,mcp__github_ci__get_workflow_run_details,mcp__github_ci__download_job_log
+            --allowedTools "Bash(git status)"
+            --allowedTools "Bash(git diff)"
+            --allowedTools "Bash(git log)"
+            --allowedTools "Bash(git add)"
+            --allowedTools "Bash(git commit)"
+            --allowedTools "Bash(git push)"
+            --allowedTools "Bash(git rm)"
+
 
         env:
           # ✅ Claude가 실제로 쓰기 가능한 경로(문서만)
