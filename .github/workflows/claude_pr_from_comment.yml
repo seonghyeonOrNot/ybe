@@ -16,7 +16,8 @@ concurrency:
 
 jobs:
   claude:
-    # PR 코멘트가 아니라 "이슈 코멘트"에서만 돌리고 싶으면 아래 조건 추가 추천
+    # ✅ 기본: @claude 들어간 댓글이면 실행
+    # ✅ "이슈 코멘트에서만" 돌리고 싶으면 아래처럼 PR 코멘트 제외 조건을 켜라
     # if: contains(github.event.comment.body, '@claude') && !github.event.issue.pull_request
     if: contains(github.event.comment.body, '@claude')
     runs-on: ubuntu-latest
@@ -28,7 +29,7 @@ jobs:
         id: guard
         uses: actions/github-script@v7
         with:
-          # 여기 토큰은 GH_TOKEN(개인 토큰) 써도 되고, 기본 토큰 써도 됨.
+          # GH_TOKEN(개인 토큰) 또는 기본 토큰 사용 가능
           github-token: ${{ secrets.GH_TOKEN }}
           script: |
             const issue = await github.rest.issues.get({
@@ -65,9 +66,9 @@ jobs:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
 
-          # ✅ 여기서 기본 allowedTools(구식 :* 문법)를 덮어써서 SDK 크래시를 피함
-          # 중요한 포인트: Bash(git add *) 처럼 콜론(:) 없이 스페이스 와일드카드
-          claude_args: >-
+          # ✅ allowedTools: 구식(:*) 문법 금지 / quoting 깨짐 방지 위해 멀티라인으로 정리
+          # ✅ Bash 허용은 최소한만 (필요하면 패턴 추가)
+          claude_args: >
             --allowedTools Read
             --allowedTools Write
             --allowedTools Edit
@@ -79,23 +80,27 @@ jobs:
             --allowedTools mcp__github_ci__get_ci_status
             --allowedTools mcp__github_ci__get_workflow_run_details
             --allowedTools mcp__github_ci__download_job_log
-            --allowedTools "Bash(git add *)"
-            --allowedTools "Bash(git commit *)"
-            --allowedTools "Bash(git push *)"
             --allowedTools "Bash(git status *)"
             --allowedTools "Bash(git diff *)"
             --allowedTools "Bash(git log *)"
-            --allowedTools "Bash(git rm *)"
+            --allowedTools "Bash(git add *)"
+            --allowedTools "Bash(git commit *)"
+            --allowedTools "Bash(git push *)"
 
         env:
+          # ✅ Claude가 실제로 쓰기 가능한 경로(문서만)
           CLAUDE_WRITE_PATHS: |
             docs/guide
             docs/policies
             docs/qa_scenarios
             docs/spec
+
+          # ✅ Claude가 읽을 수 있는 경로(카탈로그/문서)
           CLAUDE_READ_PATHS: |
             data/catalog/features.csv
             docs
+
+          # ✅ 행동 규칙(툴이 허용돼도 규칙으로 제한)
           CLAUDE_RULES: |
             - Only write markdown docs under allowed paths.
             - Do not modify application code.
