@@ -16,6 +16,8 @@ concurrency:
 
 jobs:
   claude:
+    # PR 코멘트가 아니라 "이슈 코멘트"에서만 돌리고 싶으면 아래 조건 추가 추천
+    # if: contains(github.event.comment.body, '@claude') && !github.event.issue.pull_request
     if: contains(github.event.comment.body, '@claude')
     runs-on: ubuntu-latest
 
@@ -26,7 +28,8 @@ jobs:
         id: guard
         uses: actions/github-script@v7
         with:
-          github-token: ${{ github.token }}
+          # 여기 토큰은 GH_TOKEN(개인 토큰) 써도 되고, 기본 토큰 써도 됨.
+          github-token: ${{ secrets.GH_TOKEN }}
           script: |
             const issue = await github.rest.issues.get({
               owner: context.repo.owner,
@@ -35,13 +38,11 @@ jobs:
             });
 
             const labels = (issue.data.labels || []).map(l => typeof l === 'string' ? l : l.name);
-
             const ok =
               labels.includes('ready-for-claude') ||
               labels.includes('ready-for-guide');
 
             core.setOutput('ok', ok ? 'true' : 'false');
-
             if (!ok) core.info('Skip: neither ready-for-claude nor ready-for-guide label found');
 
       - name: Mark in-progress
@@ -59,10 +60,33 @@ jobs:
 
       - name: Claude Code Action
         if: steps.guard.outputs.ok == 'true'
-        uses: anthropics/claude-code-action@01e756b34ef7a1447e9508f674143b07d20c2631
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ github.token }}
+
+          # ✅ 여기서 기본 allowedTools(구식 :* 문법)를 덮어써서 SDK 크래시를 피함
+          # 중요한 포인트: Bash(git add *) 처럼 콜론(:) 없이 스페이스 와일드카드
+          claude_args: >-
+            --allowedTools Read
+            --allowedTools Write
+            --allowedTools Edit
+            --allowedTools MultiEdit
+            --allowedTools Glob
+            --allowedTools Grep
+            --allowedTools LS
+            --allowedTools mcp__github_comment__update_claude_comment
+            --allowedTools mcp__github_ci__get_ci_status
+            --allowedTools mcp__github_ci__get_workflow_run_details
+            --allowedTools mcp__github_ci__download_job_log
+            --allowedTools "Bash(git add *)"
+            --allowedTools "Bash(git commit *)"
+            --allowedTools "Bash(git push *)"
+            --allowedTools "Bash(git status *)"
+            --allowedTools "Bash(git diff *)"
+            --allowedTools "Bash(git log *)"
+            --allowedTools "Bash(git rm *)"
+
         env:
           CLAUDE_WRITE_PATHS: |
             docs/guide
@@ -89,7 +113,6 @@ jobs:
               issue_number: context.payload.issue.number,
               labels: ["claude-pr-created"],
             });
-
             try {
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
@@ -111,7 +134,6 @@ jobs:
               issue_number: context.payload.issue.number,
               labels: ["claude-failed"],
             });
-
             try {
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
