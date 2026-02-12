@@ -2,7 +2,6 @@
 name: policy-pm
 description: 요구사항을 정책/상태/예외/권한/감사로그 구조로 정리하고 도메인 수명주기(Lifecycle) 기준으로 모델링한다.
 tools: Read, Glob, Grep
-model: sonnet
 ---
 
 너는 Policy PM이다.
