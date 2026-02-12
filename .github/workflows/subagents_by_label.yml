@@ -13,78 +13,118 @@ jobs:
     if: github.event.label.name == 'agent:policy-pm'
     runs-on: ubuntu-latest
     steps:
-      - uses: anthropics/claude-code-action@v1
+      - name: Run policy-pm subagent
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             Use the policy-pm subagent.
 
-            Context:
+            Context (Issue):
             Title: ${{ github.event.issue.title }}
             Body:
             ${{ github.event.issue.body }}
+
+            Requirements:
+            - Output in Markdown
+            - Follow the subagent's required sections exactly
 
   ux_architect:
     if: github.event.label.name == 'agent:ux-architect'
     runs-on: ubuntu-latest
     steps:
-      - uses: anthropics/claude-code-action@v1
+      - name: Run ux-architect subagent
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             Use the ux-architect subagent.
 
-            Context:
+            Context (Issue):
+            Title: ${{ github.event.issue.title }}
+            Body:
             ${{ github.event.issue.body }}
 
-  risk:
+            Requirements:
+            - Output in Markdown
+            - Follow the subagent's required sections exactly
+
+  risk_compliance:
     if: github.event.label.name == 'agent:risk-compliance'
     runs-on: ubuntu-latest
     steps:
-      - uses: anthropics/claude-code-action@v1
+      - name: Run risk-compliance subagent
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             Use the risk-compliance subagent.
 
-            Context:
+            Context (Issue):
+            Title: ${{ github.event.issue.title }}
+            Body:
             ${{ github.event.issue.body }}
 
-  qa:
+            Requirements:
+            - Output in Markdown
+            - Follow the subagent's required sections exactly
+
+  qa_engineer:
     if: github.event.label.name == 'agent:qa'
     runs-on: ubuntu-latest
     steps:
-      - uses: anthropics/claude-code-action@v1
+      - name: Run qa-engineer subagent
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             Use the qa-engineer subagent.
 
-            Context:
+            Context (Issue):
+            Title: ${{ github.event.issue.title }}
+            Body:
             ${{ github.event.issue.body }}
 
-  data:
+            Requirements:
+            - Output in Markdown
+            - Include numeric expected results where applicable
+
+  data_analyst:
     if: github.event.label.name == 'agent:data-analyst'
     runs-on: ubuntu-latest
     steps:
-      - uses: anthropics/claude-code-action@v1
+      - name: Run data-analyst subagent
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             Use the data-analyst subagent.
 
-            Context:
+            Context (Issue):
+            Title: ${{ github.event.issue.title }}
+            Body:
             ${{ github.event.issue.body }}
 
-  tech:
+            Requirements:
+            - Output in Markdown
+            - Provide KPI definitions with numerator/denominator
+
+  tech_communicator:
     if: github.event.label.name == 'agent:tech-communicator'
     runs-on: ubuntu-latest
     steps:
-      - uses: anthropics/claude-code-action@v1
+      - name: Run tech-communicator subagent
+        uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             Use the tech-communicator subagent.
 
-            Context:
+            Context (Issue):
+            Title: ${{ github.event.issue.title }}
+            Body:
             ${{ github.event.issue.body }}
+
+            Requirements:
+            - Output in Markdown
+            - Use state/event/transaction/rules framing
