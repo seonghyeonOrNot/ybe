@@ -14,118 +14,100 @@ jobs:
     if: github.event.label.name == 'agent:policy-pm'
     runs-on: ubuntu-latest
     steps:
-      - name: Run policy-pm subagent
-        uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Use the policy-pm subagent.
+            You must use the policy-pm subagent.
 
-            Context (Issue):
+            Analyze the issue and produce a full policy architecture document.
+
+            Context:
             Title: ${{ github.event.issue.title }}
             Body:
             ${{ github.event.issue.body }}
-
-            Requirements:
-            - Output in Markdown
-            - Follow the subagent's required sections exactly
 
   ux_architect:
     if: github.event.label.name == 'agent:ux-architect'
     runs-on: ubuntu-latest
     steps:
-      - name: Run ux-architect subagent
-        uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Use the ux-architect subagent.
+            You must use the ux-architect subagent.
 
-            Context (Issue):
+            Design UX flow and interface architecture based on the issue.
+
+            Context:
             Title: ${{ github.event.issue.title }}
             Body:
             ${{ github.event.issue.body }}
-
-            Requirements:
-            - Output in Markdown
-            - Follow the subagent's required sections exactly
 
   risk_compliance:
     if: github.event.label.name == 'agent:risk-compliance'
     runs-on: ubuntu-latest
     steps:
-      - name: Run risk-compliance subagent
-        uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Use the risk-compliance subagent.
+            You must use the risk-compliance subagent.
 
-            Context (Issue):
+            Identify operational, legal, and compliance risks from the issue.
+
+            Context:
             Title: ${{ github.event.issue.title }}
             Body:
             ${{ github.event.issue.body }}
-
-            Requirements:
-            - Output in Markdown
-            - Follow the subagent's required sections exactly
 
   qa_engineer:
-    if: github.event.label.name == 'agent:qa'
+    if: github.event.label.name == 'agent:qa-engineer'
     runs-on: ubuntu-latest
     steps:
-      - name: Run qa-engineer subagent
-        uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Use the qa-engineer subagent.
+            You must use the qa-engineer subagent.
 
-            Context (Issue):
+            Design comprehensive test scenarios and edge cases.
+
+            Context:
             Title: ${{ github.event.issue.title }}
             Body:
             ${{ github.event.issue.body }}
-
-            Requirements:
-            - Output in Markdown
-            - Include numeric expected results where applicable
 
   data_analyst:
     if: github.event.label.name == 'agent:data-analyst'
     runs-on: ubuntu-latest
     steps:
-      - name: Run data-analyst subagent
-        uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Use the data-analyst subagent.
+            You must use the data-analyst subagent.
 
-            Context (Issue):
+            Define KPIs, tracking events, and measurement plans.
+
+            Context:
             Title: ${{ github.event.issue.title }}
             Body:
             ${{ github.event.issue.body }}
-
-            Requirements:
-            - Output in Markdown
-            - Provide KPI definitions with numerator/denominator
 
   tech_communicator:
     if: github.event.label.name == 'agent:tech-communicator'
     runs-on: ubuntu-latest
     steps:
-      - name: Run tech-communicator subagent
-        uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
-            Use the tech-communicator subagent.
+            You must use the tech-communicator subagent.
 
-            Context (Issue):
+            Convert the issue into technical implementation structure.
+
+            Context:
             Title: ${{ github.event.issue.title }}
             Body:
             ${{ github.event.issue.body }}
-
-            Requirements:
-            - Output in Markdown
-            - Use state/event/transaction/rules framing
