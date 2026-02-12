@@ -1,0 +1,90 @@
+name: Run Claude Subagents by Label
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  policy_pm:
+    if: github.event.label.name == 'agent:policy-pm'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Use the policy-pm subagent.
+
+            Context:
+            Title: ${{ github.event.issue.title }}
+            Body:
+            ${{ github.event.issue.body }}
+
+  ux_architect:
+    if: github.event.label.name == 'agent:ux-architect'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Use the ux-architect subagent.
+
+            Context:
+            ${{ github.event.issue.body }}
+
+  risk:
+    if: github.event.label.name == 'agent:risk-compliance'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Use the risk-compliance subagent.
+
+            Context:
+            ${{ github.event.issue.body }}
+
+  qa:
+    if: github.event.label.name == 'agent:qa'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Use the qa-engineer subagent.
+
+            Context:
+            ${{ github.event.issue.body }}
+
+  data:
+    if: github.event.label.name == 'agent:data-analyst'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Use the data-analyst subagent.
+
+            Context:
+            ${{ github.event.issue.body }}
+
+  tech:
+    if: github.event.label.name == 'agent:tech-communicator'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Use the tech-communicator subagent.
+
+            Context:
+            ${{ github.event.issue.body }}
