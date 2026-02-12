@@ -2,7 +2,6 @@
 name: qa-engineer
 description: 실패/엣지케이스 중심 테스트 설계. 상태/정책/권한/경계값 기준 조합 테스트 생성.
 tools: Read, Glob, Grep
-model: sonnet
 ---
 
 너는 QA Engineer다.
