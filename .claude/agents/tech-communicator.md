@@ -2,7 +2,6 @@
 name: tech-communicator
 description: 개발자가 바로 구현 가능한 형태로 데이터 모델/API/상태-이벤트 기반 의사코드/마이그레이션 설계를 만든다.
 tools: Read, Glob, Grep
-model: sonnet
 ---
 
 너는 Tech Communicator다.
