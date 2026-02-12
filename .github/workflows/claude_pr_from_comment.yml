@@ -9,6 +9,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
+  actions: read
 
 concurrency:
   group: claude-from-comment-${{ github.event.issue.number }}
@@ -35,20 +36,16 @@ jobs:
             });
 
             const labels = (issue.data.labels || []).map(l => typeof l === 'string' ? l : l.name);
-
-            const ok =
-              labels.includes('ready-for-claude') ||
-              labels.includes('ready-for-guide');
+            const ok = labels.includes('ready-for-claude') || labels.includes('ready-for-guide');
 
             core.setOutput('ok', ok ? 'true' : 'false');
-
             if (!ok) core.info('Skip: neither ready-for-claude nor ready-for-guide label found');
 
       - name: Mark in-progress
         if: steps.guard.outputs.ok == 'true'
         uses: actions/github-script@v7
         with:
-          github-token: ${{ github.token }}
+          github-token: ${{ secrets.GH_TOKEN }}
           script: |
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
@@ -57,16 +54,35 @@ jobs:
               labels: ["claude-in-progress"],
             });
 
-      # ✅ 핵심: Claude가 문서 폴더들에 쓰도록 “작업 범위”를 환경변수로 명시
-      # (프롬프트에서도 이미 4개 문서 생성으로 강제 중이므로, action이 추가 제한을 걸어도 흔들리지 않게 됨)
       - name: Claude Code Action
+        id: claude_step
         if: steps.guard.outputs.ok == 'true'
         uses: anthropics/claude-code-action@v1
+        continue-on-error: true
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          github_token: ${{ github.token }}
+          github_token: ${{ secrets.GH_TOKEN }}
+          show_full_output: true
+          claude_args: >-
+            --allowedTools Read
+            --allowedTools Write
+            --allowedTools Edit
+            --allowedTools MultiEdit
+            --allowedTools Glob
+            --allowedTools Grep
+            --allowedTools LS
+            --allowedTools mcp__github_comment__update_claude_comment
+            --allowedTools mcp__github_ci__get_ci_status
+            --allowedTools mcp__github_ci__get_workflow_run_details
+            --allowedTools mcp__github_ci__download_job_log
+            --allowedTools "Bash(git status)"
+            --allowedTools "Bash(git diff)"
+            --allowedTools "Bash(git log)"
+            --allowedTools "Bash(git add)"
+            --allowedTools "Bash(git commit)"
+            --allowedTools "Bash(git push)"
+            --allowedTools "Bash(git rm)"
         env:
-          # ✅ Claude에게 “여기만 수정해라”를 강제(레포 정책/가드용)
           CLAUDE_WRITE_PATHS: |
             docs/guide
             docs/policies
@@ -75,17 +91,46 @@ jobs:
           CLAUDE_READ_PATHS: |
             data/catalog/features.csv
             docs
-          # ✅ 안전장치: 코드 변경 금지 방향으로 유도
           CLAUDE_RULES: |
             - Only write markdown docs under allowed paths.
             - Do not modify application code.
+            - Do not modify workflow files.
             - Do not create pull requests; create branch and commit only.
 
-      - name: Mark success
-        if: success() && steps.guard.outputs.ok == 'true'
+      # ✅ 크레딧 부족 등 "Claude 실행 실패"를 감지해서 안내 코멘트 남김
+      - name: Detect billing error and comment
+        if: steps.guard.outputs.ok == 'true' && steps.claude_step.outcome == 'failure'
         uses: actions/github-script@v7
         with:
-          github-token: ${{ github.token }}
+          github-token: ${{ secrets.GH_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.payload.issue.number;
+
+            // GitHub Actions는 step log를 여기서 직접 읽기 어렵기 때문에,
+            // 최소한 "실패 시 공통 안내"를 남긴다.
+            // (추가 개선: workflow_run log 다운로드 후 문자열 매칭도 가능)
+            const msg = [
+              "Claude 작업이 실패했습니다.",
+              "",
+              "가능한 원인:",
+              "- Anthropic API 크레딧 부족(가장 흔함): `Credit balance is too low`",
+              "- API Key 권한/조직 설정 문제",
+              "",
+              "조치:",
+              "1) Anthropic Console에서 Billing/크레딧 잔액 확인",
+              "2) 비용 절감: QA 케이스 수/문서 수를 줄여 재시도",
+              "3) 다시 실행: 댓글로 `@claude retry`",
+            ].join("\n");
+
+            await github.rest.issues.createComment({ owner, repo, issue_number, body: msg });
+
+      - name: Mark success
+        if: steps.guard.outputs.ok == 'true' && steps.claude_step.outcome == 'success'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GH_TOKEN }}
           script: |
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
@@ -93,7 +138,6 @@ jobs:
               issue_number: context.payload.issue.number,
               labels: ["claude-pr-created"],
             });
-
             try {
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
@@ -104,10 +148,10 @@ jobs:
             } catch(e) {}
 
       - name: Mark failure
-        if: failure() && steps.guard.outputs.ok == 'true'
+        if: steps.guard.outputs.ok == 'true' && steps.claude_step.outcome == 'failure'
         uses: actions/github-script@v7
         with:
-          github-token: ${{ github.token }}
+          github-token: ${{ secrets.GH_TOKEN }}
           script: |
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
@@ -115,7 +159,6 @@ jobs:
               issue_number: context.payload.issue.number,
               labels: ["claude-failed"],
             });
-
             try {
               await github.rest.issues.removeLabel({
                 owner: context.repo.owner,
@@ -124,3 +167,4 @@ jobs:
                 name: "claude-in-progress"
               });
             } catch(e) {}
+            core.setFailed("Claude step failed");
