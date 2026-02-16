@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>연차/휴가 사용 내역 - 관리자</title>
+<style>
+  :root {
+    --primary: #4361ee;
+    --primary-light: #eef1ff;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --gray-50: #f9fafb;
+    --gray-100: #f3f4f6;
+    --gray-200: #e5e7eb;
+    --gray-300: #d1d5db;
+    --gray-400: #9ca3af;
+    --gray-500: #6b7280;
+    --gray-600: #4b5563;
+    --gray-700: #374151;
+    --gray-800: #1f2937;
+    --gray-900: #111827;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+    --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--gray-50); color: var(--gray-800); font-size: 14px; line-height: 1.5; }
+
+  /* Layout */
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar { width: 240px; background: var(--gray-900); color: #fff; padding: 0; flex-shrink: 0; }
+  .sidebar-logo { padding: 20px 24px; font-size: 18px; font-weight: 700; border-bottom: 1px solid var(--gray-700); }
+  .sidebar-section { padding: 16px 0; }
+  .sidebar-section-title { padding: 8px 24px; font-size: 11px; text-transform: uppercase; color: var(--gray-400); letter-spacing: .5px; }
+  .sidebar-item { padding: 10px 24px; cursor: pointer; display: flex; align-items: center; gap: 10px; color: var(--gray-300); font-size: 13px; transition: background .15s; }
+  .sidebar-item:hover { background: rgba(255,255,255,.06); }
+  .sidebar-item.active { background: rgba(67,97,238,.25); color: #fff; border-right: 3px solid var(--primary); }
+  .sidebar-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+  /* Top bar */
+  .topbar { height: 56px; background: #fff; border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; justify-content: space-between; padding: 0 28px; }
+  .topbar-breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--gray-500); }
+  .topbar-breadcrumb span.current { color: var(--gray-800); font-weight: 600; }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+
+  /* Page content */
+  .page { padding: 28px; flex: 1; }
+  .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .page-title { font-size: 22px; font-weight: 700; }
+  .page-actions { display: flex; gap: 8px; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--gray-200); margin-bottom: 20px; }
+  .tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--gray-500); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all .15s; }
+  .tab:hover { color: var(--gray-700); }
+  .tab.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+
+  /* Filter card */
+  .filter-card { background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
+  .filter-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .filter-group { display: flex; flex-direction: column; gap: 6px; }
+  .filter-group label { font-size: 12px; font-weight: 600; color: var(--gray-600); }
+  .filter-group input, .filter-group select {
+    height: 36px; padding: 0 12px; border: 1px solid var(--gray-300); border-radius: 6px;
+    font-size: 13px; color: var(--gray-700); background: #fff; outline: none; transition: border .15s;
+  }
+  .filter-group input:focus, .filter-group select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(67,97,238,.1); }
+  .filter-group input[type="date"] { width: 150px; }
+  .filter-group select { min-width: 130px; cursor: pointer; }
+  .filter-group input[type="text"] { width: 200px; }
+
+  /* Buttons */
+  .btn { height: 36px; padding: 0 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; border: none; transition: all .15s; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: #3451d1; }
+  .btn-outline { background: #fff; color: var(--gray-700); border: 1px solid var(--gray-300); }
+  .btn-outline:hover { background: var(--gray-50); border-color: var(--gray-400); }
+  .btn-ghost { background: transparent; color: var(--gray-500); }
+  .btn-ghost:hover { background: var(--gray-100); color: var(--gray-700); }
+  .btn-sm { height: 30px; padding: 0 10px; font-size: 12px; }
+
+  /* Filter chips */
+  .filter-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 12px; background: var(--primary-light); color: var(--primary); font-weight: 500; }
+  .chip-close { cursor: pointer; width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 10px; }
+  .chip-close:hover { background: rgba(67,97,238,.2); }
+
+  /* Summary bar */
+  .summary-bar { display: flex; gap: 24px; padding: 14px 20px; background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius); margin-bottom: 16px; box-shadow: var(--shadow); }
+  .summary-item { display: flex; flex-direction: column; gap: 2px; }
+  .summary-label { font-size: 12px; color: var(--gray-500); }
+  .summary-value { font-size: 18px; font-weight: 700; color: var(--gray-800); }
+  .summary-value.primary { color: var(--primary); }
+
+  /* Table */
+  .table-wrapper { background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .table-toolbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--gray-200); }
+  .table-toolbar-left { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-600); }
+  .table-toolbar-right { display: flex; gap: 8px; }
+
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--gray-50); }
+  th { padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 600; color: var(--gray-500); border-bottom: 1px solid var(--gray-200); white-space: nowrap; cursor: pointer; user-select: none; }
+  th:hover { color: var(--gray-700); }
+  th .sort-icon { display: inline-block; margin-left: 4px; font-size: 10px; color: var(--gray-400); }
+  th.sorted { color: var(--primary); }
+  th.sorted .sort-icon { color: var(--primary); }
+  td { padding: 12px 14px; border-bottom: 1px solid var(--gray-100); font-size: 13px; white-space: nowrap; }
+  tr:hover td { background: var(--gray-50); }
+  tr:last-child td { border-bottom: none; }
+
+  /* Badges */
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; }
+  .badge-approved { background: #d1fae5; color: #065f46; }
+  .badge-pending { background: #fef3c7; color: #92400e; }
+  .badge-rejected { background: #fee2e2; color: #991b1b; }
+  .badge-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .badge-approved .badge-dot { background: #10b981; }
+  .badge-pending .badge-dot { background: #f59e0b; }
+  .badge-rejected .badge-dot { background: #ef4444; }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+  .tag-full { background: #dbeafe; color: #1e40af; }
+  .tag-half-am { background: #fae8ff; color: #86198f; }
+  .tag-half-pm { background: #f3e8ff; color: #6b21a8; }
+  .tag-quarter { background: #fef9c3; color: #854d0e; }
+  .tag-hourly { background: #ffedd5; color: #9a3412; }
+  .tag-proxy { background: #fee2e2; color: #991b1b; font-size: 10px; margin-left: 4px; }
+
+  .member-cell { display: flex; align-items: center; gap: 8px; }
+  .member-avatar { width: 28px; height: 28px; border-radius: 50%; background: var(--gray-200); color: var(--gray-600); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .member-name { font-weight: 500; color: var(--gray-800); cursor: pointer; }
+  .member-name:hover { color: var(--primary); text-decoration: underline; }
+
+  .text-muted { color: var(--gray-400); }
+  .text-right { text-align: right; }
+
+  /* Footer row */
+  .table-footer { background: var(--gray-50); }
+  .table-footer td { font-weight: 700; color: var(--gray-700); border-top: 2px solid var(--gray-200); }
+
+  /* Pagination */
+  .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--gray-200); }
+  .pagination-info { font-size: 13px; color: var(--gray-500); }
+  .pagination-controls { display: flex; align-items: center; gap: 2px; }
+  .page-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 6px; border: none; background: transparent; cursor: pointer; font-size: 13px; color: var(--gray-600); transition: all .15s; }
+  .page-btn:hover { background: var(--gray-100); }
+  .page-btn.active { background: var(--primary); color: #fff; }
+  .page-btn:disabled { color: var(--gray-300); cursor: default; }
+  .page-btn:disabled:hover { background: transparent; }
+
+  /* Empty state */
+  .empty-state { padding: 60px 20px; text-align: center; }
+  .empty-state svg { width: 64px; height: 64px; color: var(--gray-300); margin-bottom: 16px; }
+  .empty-state h3 { font-size: 16px; color: var(--gray-600); margin-bottom: 8px; }
+  .empty-state p { font-size: 13px; color: var(--gray-400); margin-bottom: 16px; }
+
+  /* Modal */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: center; justify-content: center; z-index: 1000; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 12px; width: 560px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.15); }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--gray-200); }
+  .modal-header h3 { font-size: 16px; font-weight: 700; }
+  .modal-close { width: 32px; height: 32px; border-radius: 6px; border: none; background: transparent; cursor: pointer; font-size: 18px; color: var(--gray-400); display: flex; align-items: center; justify-content: center; }
+  .modal-close:hover { background: var(--gray-100); }
+  .modal-body { padding: 24px; }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .detail-item { display: flex; flex-direction: column; gap: 4px; }
+  .detail-label { font-size: 12px; color: var(--gray-500); font-weight: 500; }
+  .detail-value { font-size: 14px; color: var(--gray-800); font-weight: 500; }
+  .detail-divider { grid-column: 1 / -1; border-top: 1px solid var(--gray-100); margin: 4px 0; }
+  .timeline { margin-top: 20px; }
+  .timeline-title { font-size: 13px; font-weight: 600; color: var(--gray-700); margin-bottom: 12px; }
+  .timeline-item { display: flex; gap: 12px; padding-bottom: 16px; position: relative; }
+  .timeline-item:not(:last-child)::before { content: ''; position: absolute; left: 11px; top: 24px; bottom: 0; width: 1px; background: var(--gray-200); }
+  .timeline-dot { width: 24px; height: 24px; border-radius: 50%; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+  .timeline-content { flex: 1; }
+  .timeline-text { font-size: 13px; color: var(--gray-700); }
+  .timeline-time { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+  /* Org tree sidebar (filter) */
+  .filter-expanded { display: flex; gap: 16px; margin-bottom: 16px; }
+  .org-tree-panel { width: 240px; background: #fff; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 12px; max-height: 300px; overflow-y: auto; box-shadow: var(--shadow); flex-shrink: 0; }
+  .org-tree-title { font-size: 12px; font-weight: 600; color: var(--gray-600); margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--gray-100); }
+  .org-node { padding: 6px 8px; font-size: 13px; color: var(--gray-700); cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 6px; }
+  .org-node:hover { background: var(--gray-50); }
+  .org-node.selected { background: var(--primary-light); color: var(--primary); font-weight: 500; }
+  .org-node-indent { padding-left: 20px; }
+  .org-node-arrow { font-size: 10px; color: var(--gray-400); width: 16px; text-align: center; }
+  .org-checkbox { width: 16px; height: 16px; accent-color: var(--primary); }
+  .filter-main-area { flex: 1; }
+
+  /* Responsive */
+  @media (max-width: 1200px) {
+    .sidebar { display: none; }
+    .filter-group input[type="date"] { width: 130px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">YBE 근태관리</div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">근태 관리</div>
+      <div class="sidebar-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        근로 시간 현황
+      </div>
+      <div class="sidebar-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        연차/휴가 관리
+      </div>
+      <div class="sidebar-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        구성원 관리
+      </div>
+      <div class="sidebar-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        설정
+      </div>
+    </div>
+  </nav>
+
+  <div class="main">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="topbar-breadcrumb">
+        연차/휴가 관리 <span style="color:var(--gray-300)">›</span> <span class="current">사용 내역</span>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-ghost btn-sm" title="알림">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        </button>
+        <div class="avatar">김</div>
+      </div>
+    </header>
+
+    <!-- Page -->
+    <div class="page">
+      <div class="page-header">
+        <h1 class="page-title">연차/휴가 관리</h1>
+        <div class="page-actions">
+          <button class="btn btn-outline" onclick="alert('엑셀 다운로드 (Phase 2)')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            엑셀 다운로드
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <div class="tab" onclick="location.href='#'">연차 기준 관리</div>
+        <div class="tab" onclick="location.href='#'">연차 현황</div>
+        <div class="tab active">사용 내역</div>
+      </div>
+
+      <!-- Filters + Org Tree -->
+      <div class="filter-expanded">
+        <!-- Org tree -->
+        <div class="org-tree-panel" id="orgTree">
+          <div class="org-tree-title">조직도</div>
+          <div class="org-node selected">
+            <input type="checkbox" class="org-checkbox" checked onchange="applyFilters()">
+            <span class="org-node-arrow">▾</span> 전체 (42명)
+          </div>
+          <div class="org-node org-node-indent">
+            <input type="checkbox" class="org-checkbox" checked onchange="applyFilters()">
+            <span class="org-node-arrow">▾</span> 개발팀 (15명)
+          </div>
+          <div class="org-node org-node-indent" style="padding-left:40px;">
+            <input type="checkbox" class="org-checkbox" checked onchange="applyFilters()">
+            프론트엔드 (8명)
+          </div>
+          <div class="org-node org-node-indent" style="padding-left:40px;">
+            <input type="checkbox" class="org-checkbox" checked onchange="applyFilters()">
+            백엔드 (7명)
+          </div>
+          <div class="org-node org-node-indent">
+            <input type="checkbox" class="org-checkbox" checked onchange="applyFilters()">
+            <span class="org-node-arrow">▾</span> 디자인팀 (8명)
+          </div>
+          <div class="org-node org-node-indent">
+            <input type="checkbox" class="org-checkbox" checked onchange="applyFilters()">
+            <span class="org-node-arrow">▾</span> 경영지원팀 (10명)
+          </div>
+          <div class="org-node org-node-indent">
+            <input type="checkbox" class="org-checkbox" checked onchange="applyFilters()">
+            <span class="org-node-arrow">▸</span> 마케팅팀 (9명)
+          </div>
+        </div>
+
+        <!-- Filter area -->
+        <div class="filter-main-area">
+          <div class="filter-card">
+            <div class="filter-row">
+              <div class="filter-group">
+                <label>시작일</label>
+                <input type="date" id="filterStart" value="2026-02-01" onchange="applyFilters()">
+              </div>
+              <div class="filter-group">
+                <label>종료일</label>
+                <input type="date" id="filterEnd" value="2026-02-28" onchange="applyFilters()">
+              </div>
+              <div class="filter-group">
+                <label>결재 상태</label>
+                <select id="filterStatus" onchange="applyFilters()">
+                  <option value="">전체</option>
+                  <option value="APPROVED">확정</option>
+                  <option value="PENDING">대기중</option>
+                  <option value="REJECTED">취소&반려</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>휴가 형태</label>
+                <select id="filterLeaveType" onchange="applyFilters()">
+                  <option value="">전체</option>
+                  <option value="FULL_DAY">종일</option>
+                  <option value="HALF_DAY">반차</option>
+                  <option value="QUARTER_DAY">반반차</option>
+                  <option value="HOURLY">시간</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>신청자 형태</label>
+                <select id="filterApplicant" onchange="applyFilters()">
+                  <option value="">전체</option>
+                  <option value="SELF">본인 신청</option>
+                  <option value="ADMIN_PROXY">관리자 대리</option>
+                </select>
+              </div>
+              <div class="filter-group">
+                <label>검색</label>
+                <input type="text" id="filterKeyword" placeholder="이름, 부서 검색..." oninput="applyFilters()">
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="resetFilters()" style="align-self:flex-end;">초기화</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="filter-chips" id="filterChips"></div>
+
+      <!-- Summary -->
+      <div class="summary-bar">
+        <div class="summary-item">
+          <span class="summary-label">전체 건수</span>
+          <span class="summary-value" id="totalCount">12</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">총 사용 일수</span>
+          <span class="summary-value primary" id="totalDays">10.75</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">확정</span>
+          <span class="summary-value" style="color:var(--success)" id="approvedCount">9</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">대기중</span>
+          <span class="summary-value" style="color:var(--warning)" id="pendingCount">2</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">취소&반려</span>
+          <span class="summary-value" style="color:var(--danger)" id="rejectedCount">1</span>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrapper">
+        <div class="table-toolbar">
+          <div class="table-toolbar-left">
+            <span id="showingInfo">12건 중 1-12 표시</span>
+          </div>
+          <div class="table-toolbar-right">
+            <select class="btn btn-outline btn-sm" style="height:30px;font-size:12px;" id="pageSize" onchange="applyFilters()">
+              <option value="20">20건</option>
+              <option value="50">50건</option>
+              <option value="100">100건</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th style="width:40px;"><input type="checkbox" id="checkAll" onchange="toggleAll(this)"></th>
+                <th onclick="sortTable('department')">부서명 <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable('name')">구성원명 <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable('position')">직위/직책 <span class="sort-icon">↕</span></th>
+                <th onclick="sortTable('date')" class="sorted">사용일 <span class="sort-icon">↓</span></th>
+                <th>연차 유형</th>
+                <th>상세</th>
+                <th>사용단위</th>
+                <th class="text-right" onclick="sortTable('days')">사용 일수 <span class="sort-icon">↕</span></th>
+                <th>사용 시간</th>
+                <th>결재 상태</th>
+                <th>신청자</th>
+                <th>비고</th>
+              </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+            <tfoot class="table-footer" id="tableFoot">
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Empty state (hidden by default) -->
+        <div class="empty-state" id="emptyState" style="display:none;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12" stroke-dasharray="2 2"/><line x1="9" y1="16" x2="13" y2="16" stroke-dasharray="2 2"/></svg>
+          <h3>조회 결과가 없습니다</h3>
+          <p>선택한 조건에 해당하는 사용 내역이 없습니다.<br>필터 조건을 변경하거나 초기화해 주세요.</p>
+          <button class="btn btn-outline" onclick="resetFilters()">필터 초기화</button>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="paginationArea">
+          <div class="pagination-info">총 <strong>12</strong>건</div>
+          <div class="pagination-controls">
+            <button class="page-btn" disabled>‹</button>
+            <button class="page-btn active">1</button>
+            <button class="page-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>사용 내역 상세</h3>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="detail-grid" id="detailGrid">
+      </div>
+      <div class="timeline" id="detailTimeline">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Sample data
+const DATA = [
+  { id:'LU-001', dept:'프론트엔드', name:'김민준', pos:'선임', date:'2026-02-17', dateTo:'2026-02-18', category:'기본연차', detail:'기본 연차', unit:'FULL_DAY', days:2, hours:'16시간 0분', status:'APPROVED', applicant:'SELF', remark:'개인 사유', createdAt:'2026-02-10 09:30' },
+  { id:'LU-002', dept:'백엔드', name:'이서윤', pos:'책임', date:'2026-02-14', dateTo:'', category:'기본연차', detail:'기본 연차', unit:'HALF_DAY_AM', days:0.5, hours:'4시간 0분', status:'APPROVED', applicant:'SELF', remark:'오전 병원', createdAt:'2026-02-12 14:20' },
+  { id:'LU-003', dept:'디자인팀', name:'박지호', pos:'사원', date:'2026-02-20', dateTo:'', category:'기본연차', detail:'1년 미만 연차', unit:'FULL_DAY', days:1, hours:'8시간 0분', status:'PENDING', applicant:'SELF', remark:'', createdAt:'2026-02-15 10:00' },
+  { id:'LU-004', dept:'경영지원팀', name:'최수아', pos:'대리', date:'2026-02-12', dateTo:'', category:'기본연차', detail:'기본 연차', unit:'QUARTER_DAY', days:0.25, hours:'2시간 0분', status:'APPROVED', applicant:'SELF', remark:'관공서 방문', createdAt:'2026-02-11 08:45' },
+  { id:'LU-005', dept:'프론트엔드', name:'정예준', pos:'사원', date:'2026-02-19', dateTo:'', category:'기본연차', detail:'비례 연차', unit:'HOURLY', days:0.125, hours:'1시간 0분', status:'APPROVED', applicant:'ADMIN_PROXY', remark:'관리자 대리 신청', createdAt:'2026-02-17 11:00' },
+  { id:'LU-006', dept:'마케팅팀', name:'강하은', pos:'선임', date:'2026-02-10', dateTo:'2026-02-11', category:'기본연차', detail:'기본 연차', unit:'FULL_DAY', days:2, hours:'16시간 0분', status:'APPROVED', applicant:'SELF', remark:'가족 행사', createdAt:'2026-02-05 16:30' },
+  { id:'LU-007', dept:'백엔드', name:'윤도현', pos:'책임', date:'2026-02-25', dateTo:'', category:'이월연차', detail:'이월 연차', unit:'HALF_DAY_PM', days:0.5, hours:'4시간 0분', status:'PENDING', applicant:'SELF', remark:'', createdAt:'2026-02-16 13:15' },
+  { id:'LU-008', dept:'디자인팀', name:'임소율', pos:'대리', date:'2026-02-07', dateTo:'', category:'기본연차', detail:'기본 연차', unit:'FULL_DAY', days:1, hours:'8시간 0분', status:'REJECTED', applicant:'SELF', remark:'프로젝트 일정 충돌', createdAt:'2026-02-03 09:00' },
+  { id:'LU-009', dept:'경영지원팀', name:'한지민', pos:'과장', date:'2026-02-13', dateTo:'', category:'기본연차', detail:'기본 연차', unit:'HALF_DAY_AM', days:0.5, hours:'4시간 0분', status:'APPROVED', applicant:'SELF', remark:'개인 사유', createdAt:'2026-02-10 17:00' },
+  { id:'LU-010', dept:'프론트엔드', name:'오태양', pos:'사원', date:'2026-02-24', dateTo:'2026-02-26', category:'기본연차', detail:'기본 연차', unit:'FULL_DAY', days:3, hours:'24시간 0분', status:'APPROVED', applicant:'SELF', remark:'경조사 (결혼)', createdAt:'2026-02-14 10:30' },
+  { id:'LU-011', dept:'마케팅팀', name:'신유나', pos:'선임', date:'2026-02-21', dateTo:'', category:'기본연차', detail:'기본 연차', unit:'QUARTER_DAY', days:0.25, hours:'2시간 0분', status:'APPROVED', applicant:'SELF', remark:'치과 예약', createdAt:'2026-02-18 08:00' },
+  { id:'LU-012', dept:'백엔드', name:'장현우', pos:'사원', date:'2026-02-28', dateTo:'', category:'기본연차', detail:'당겨쓰기', unit:'HALF_DAY_PM', days:0.5, hours:'4시간 0분', status:'APPROVED', applicant:'SELF', remark:'당겨쓰기 연차', createdAt:'2026-02-20 14:00' },
+];
+
+const UNIT_LABELS = {
+  FULL_DAY: '종일', HALF_DAY_AM: '반차(오전)', HALF_DAY_PM: '반차(오후)',
+  QUARTER_DAY: '반반차', HOURLY: '시간'
+};
+const UNIT_TAGS = {
+  FULL_DAY: 'tag-full', HALF_DAY_AM: 'tag-half-am', HALF_DAY_PM: 'tag-half-pm',
+  QUARTER_DAY: 'tag-quarter', HOURLY: 'tag-hourly'
+};
+const STATUS_BADGES = {
+  APPROVED: { cls: 'badge-approved', label: '확정' },
+  PENDING:  { cls: 'badge-pending',  label: '대기중' },
+  REJECTED: { cls: 'badge-rejected', label: '취소&반려' },
+};
+
+function getFilteredData() {
+  const start = document.getElementById('filterStart').value;
+  const end = document.getElementById('filterEnd').value;
+  const status = document.getElementById('filterStatus').value;
+  const leaveType = document.getElementById('filterLeaveType').value;
+  const applicant = document.getElementById('filterApplicant').value;
+  const keyword = document.getElementById('filterKeyword').value.toLowerCase();
+
+  return DATA.filter(r => {
+    if (start && r.date < start) return false;
+    if (end && r.date > end) return false;
+    if (status && r.status !== status) return false;
+    if (leaveType) {
+      if (leaveType === 'HALF_DAY' && !r.unit.startsWith('HALF_DAY')) return false;
+      if (leaveType !== 'HALF_DAY' && leaveType !== r.unit) return false;
+    }
+    if (applicant && r.applicant !== applicant) return false;
+    if (keyword && !r.name.includes(keyword) && !r.dept.includes(keyword)) return false;
+    return true;
+  });
+}
+
+function renderChips() {
+  const chips = [];
+  const status = document.getElementById('filterStatus');
+  const leaveType = document.getElementById('filterLeaveType');
+  const applicant = document.getElementById('filterApplicant');
+  const keyword = document.getElementById('filterKeyword').value;
+
+  if (status.value) chips.push({ label: '결재: ' + status.options[status.selectedIndex].text, clear: () => { status.value=''; applyFilters(); }});
+  if (leaveType.value) chips.push({ label: '형태: ' + leaveType.options[leaveType.selectedIndex].text, clear: () => { leaveType.value=''; applyFilters(); }});
+  if (applicant.value) chips.push({ label: '신청자: ' + applicant.options[applicant.selectedIndex].text, clear: () => { applicant.value=''; applyFilters(); }});
+  if (keyword) chips.push({ label: '검색: ' + keyword, clear: () => { document.getElementById('filterKeyword').value=''; applyFilters(); }});
+
+  const el = document.getElementById('filterChips');
+  el.innerHTML = chips.map((c,i) => `<span class="chip">${c.label} <span class="chip-close" onclick="clearChip(${i})">✕</span></span>`).join('');
+  window._chipClearFns = chips.map(c => c.clear);
+}
+
+function clearChip(i) { window._chipClearFns[i](); }
+
+function applyFilters() {
+  const filtered = getFilteredData();
+  renderChips();
+  renderTable(filtered);
+  renderSummary(filtered);
+}
+
+function resetFilters() {
+  document.getElementById('filterStart').value = '2026-02-01';
+  document.getElementById('filterEnd').value = '2026-02-28';
+  document.getElementById('filterStatus').value = '';
+  document.getElementById('filterLeaveType').value = '';
+  document.getElementById('filterApplicant').value = '';
+  document.getElementById('filterKeyword').value = '';
+  applyFilters();
+}
+
+function renderSummary(data) {
+  document.getElementById('totalCount').textContent = data.length;
+  const approved = data.filter(r => r.status === 'APPROVED');
+  const pending = data.filter(r => r.status === 'PENDING');
+  const rejected = data.filter(r => r.status === 'REJECTED');
+  document.getElementById('totalDays').textContent = data.reduce((s,r) => s + r.days, 0).toFixed(2).replace(/\.?0+$/, '');
+  document.getElementById('approvedCount').textContent = approved.length;
+  document.getElementById('pendingCount').textContent = pending.length;
+  document.getElementById('rejectedCount').textContent = rejected.length;
+}
+
+function renderTable(data) {
+  const tbody = document.getElementById('tableBody');
+  const tfoot = document.getElementById('tableFoot');
+  const empty = document.getElementById('emptyState');
+  const pagination = document.getElementById('paginationArea');
+  const info = document.getElementById('showingInfo');
+
+  if (data.length === 0) {
+    tbody.innerHTML = '';
+    tfoot.innerHTML = '';
+    empty.style.display = 'block';
+    pagination.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  pagination.style.display = 'flex';
+  info.textContent = `${data.length}건 중 1-${data.length} 표시`;
+
+  const initials = n => n.charAt(0);
+
+  tbody.innerHTML = data.map(r => {
+    const st = STATUS_BADGES[r.status];
+    const dateDisplay = r.dateTo ? `${r.date} ~ ${r.dateTo}` : r.date;
+    const proxyTag = r.applicant === 'ADMIN_PROXY' ? '<span class="tag tag-proxy">대리</span>' : '';
+    return `<tr>
+      <td><input type="checkbox" class="row-check"></td>
+      <td>${r.dept}</td>
+      <td><div class="member-cell"><div class="member-avatar">${initials(r.name)}</div><span class="member-name" onclick="openDetail('${r.id}')">${r.name}</span>${proxyTag}</div></td>
+      <td>${r.pos}</td>
+      <td>${dateDisplay}</td>
+      <td>${r.category}</td>
+      <td>${r.detail}</td>
+      <td><span class="tag ${UNIT_TAGS[r.unit]}">${UNIT_LABELS[r.unit]}</span></td>
+      <td class="text-right">${r.days}</td>
+      <td>${r.hours}</td>
+      <td><span class="badge ${st.cls}"><span class="badge-dot"></span>${st.label}</span></td>
+      <td>${r.applicant === 'SELF' ? '본인' : '관리자'}</td>
+      <td style="max-width:150px;overflow:hidden;text-overflow:ellipsis;" title="${r.remark}">${r.remark || '<span class="text-muted">-</span>'}</td>
+    </tr>`;
+  }).join('');
+
+  const totalDays = data.reduce((s,r) => s + r.days, 0);
+  tfoot.innerHTML = `<tr>
+    <td colspan="8" style="text-align:right;font-weight:700;">합계</td>
+    <td class="text-right" style="font-weight:700;">${totalDays.toFixed(2).replace(/\.?0+$/, '')}</td>
+    <td colspan="4"></td>
+  </tr>`;
+}
+
+function toggleAll(el) {
+  document.querySelectorAll('.row-check').forEach(c => c.checked = el.checked);
+}
+
+function sortTable(field) {
+  // Simple sort toggle - in real app would track state
+  applyFilters();
+}
+
+function openDetail(id) {
+  const r = DATA.find(d => d.id === id);
+  if (!r) return;
+  const st = STATUS_BADGES[r.status];
+  const dateDisplay = r.dateTo ? `${r.date} ~ ${r.dateTo}` : r.date;
+
+  document.getElementById('detailGrid').innerHTML = `
+    <div class="detail-item"><span class="detail-label">구성원</span><span class="detail-value">${r.name} (${r.pos})</span></div>
+    <div class="detail-item"><span class="detail-label">부서</span><span class="detail-value">${r.dept}</span></div>
+    <div class="detail-item"><span class="detail-label">사용일</span><span class="detail-value">${dateDisplay}</span></div>
+    <div class="detail-item"><span class="detail-label">연차 유형</span><span class="detail-value">${r.category}</span></div>
+    <div class="detail-divider"></div>
+    <div class="detail-item"><span class="detail-label">상세</span><span class="detail-value">${r.detail}</span></div>
+    <div class="detail-item"><span class="detail-label">사용단위</span><span class="detail-value"><span class="tag ${UNIT_TAGS[r.unit]}">${UNIT_LABELS[r.unit]}</span></span></div>
+    <div class="detail-item"><span class="detail-label">사용 일수</span><span class="detail-value">${r.days}일</span></div>
+    <div class="detail-item"><span class="detail-label">사용 시간</span><span class="detail-value">${r.hours}</span></div>
+    <div class="detail-divider"></div>
+    <div class="detail-item"><span class="detail-label">결재 상태</span><span class="detail-value"><span class="badge ${st.cls}"><span class="badge-dot"></span>${st.label}</span></span></div>
+    <div class="detail-item"><span class="detail-label">신청자</span><span class="detail-value">${r.applicant === 'SELF' ? '본인 신청' : '관리자 대리 신청'}</span></div>
+    <div class="detail-item" style="grid-column:1/-1;"><span class="detail-label">비고</span><span class="detail-value">${r.remark || '-'}</span></div>
+  `;
+
+  document.getElementById('detailTimeline').innerHTML = `
+    <div class="timeline-title">결재 이력</div>
+    <div class="timeline-item">
+      <div class="timeline-dot">1</div>
+      <div class="timeline-content">
+        <div class="timeline-text"><strong>${r.name}</strong>님이 연차를 신청했습니다.</div>
+        <div class="timeline-time">${r.createdAt}</div>
+      </div>
+    </div>
+    ${r.status === 'APPROVED' ? `<div class="timeline-item">
+      <div class="timeline-dot">2</div>
+      <div class="timeline-content">
+        <div class="timeline-text"><strong>팀장</strong>이 결재를 승인했습니다.</div>
+        <div class="timeline-time">${r.createdAt.split(' ')[0]} 18:00</div>
+      </div>
+    </div>` : ''}
+    ${r.status === 'REJECTED' ? `<div class="timeline-item">
+      <div class="timeline-dot" style="background:#fee2e2;color:#ef4444;">2</div>
+      <div class="timeline-content">
+        <div class="timeline-text"><strong>팀장</strong>이 결재를 반려했습니다. <span style="color:var(--danger);">사유: ${r.remark}</span></div>
+        <div class="timeline-time">${r.createdAt.split(' ')[0]} 17:30</div>
+      </div>
+    </div>` : ''}
+  `;
+
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('detailModal').classList.remove('open');
+}
+
+document.getElementById('detailModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// Init
+applyFilters();
+</script>
+</body>
+</html>
