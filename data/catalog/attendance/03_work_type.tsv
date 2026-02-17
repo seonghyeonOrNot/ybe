@@ -1,0 +1,5 @@
+work_type_id	canonical_key	work_type_name	description	is_active
+WT-01	worktype.base	기본 근무	고정 출퇴근/휴게, 일/주 기준 설정 가능	TRUE
+WT-02	worktype.flex	시차 근무	출퇴근을 “시간 범위”로 운영(유연 출퇴근)	TRUE
+WT-03	worktype.selective	선택 근무	주 기준 + 주 시작 요일, 요일별 출퇴근/휴게 상이 설정 가능	TRUE
+WT-04	worktype.shift	교대 근무	교대 스케줄 기반 운영(고정 시각/휴게 설정)	TRUE

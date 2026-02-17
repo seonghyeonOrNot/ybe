@@ -1,0 +1,36 @@
+field_id	canonical_key	work_type_id	field_group	field_name	value_type	value_unit	allowed_values	constraints	description	default_value	is_required	is_active	legacy_state_id
+WTC-0101	worktype.base.basic.work_name	WT-01	기본 설정	근무형태명	string			required=true	근무 형태명		TRUE	TRUE	ST-11
+WTC-0102	worktype.base.basic.contract_type	WT-01	기본 설정	계약 유형	enum		정규직,계약직&기간제	required=true	계약 유형		TRUE	TRUE	ST-12
+WTC-0103	worktype.base.basic.weekly_holiday	WT-01	기본 설정	주휴일	enum		월,화,수,목,금,토,일,없음		주휴일 선택		FALSE	TRUE	ST-13
+WTC-0104	worktype.base.basic.rest_day	WT-01	기본 설정	휴무일	enum		월,화,수,목,금,토,일,없음		휴무일 선택		FALSE	TRUE	ST-14
+WTC-0105	worktype.base.work.base_unit	WT-01	근무 설정	기준	enum		일기준,주기준	required=true	기준 단위 선택		TRUE	TRUE	ST-15
+WTC-0106	worktype.base.work.prescribed_work_time	WT-01	근무 설정	소정근로시간	time_duration	HH:MM		legal_fixed=true	소정근로시간 설정(법정 기준 선택 시 일 08:00/주 40:00 고정)		TRUE	TRUE	ST-16
+WTC-0107	worktype.base.work.max_work_time	WT-01	근무 설정	최대근로시간	time_duration	HH:MM			최대근로시간 설정		FALSE	TRUE	ST-17
+WTC-0108	worktype.base.work.start_time	WT-01	근무 설정	출근시간	time	HH:MM			출근 기준 시각		FALSE	TRUE	ST-18
+WTC-0109	worktype.base.work.end_time	WT-01	근무 설정	퇴근시간	time	HH:MM			퇴근 기준 시각		FALSE	TRUE	ST-19
+WTC-0110	worktype.base.work.break_time_range	WT-01	근무 설정	휴게시간	time_range	HH:MM~HH:MM		start_lt_end=true	휴게 시간대		FALSE	TRUE	ST-20
+WTC-0201	worktype.flex.basic.work_name	WT-02	기본 설정	근무형태명	string			required=true	근무 형태명		TRUE	TRUE	ST-21
+WTC-0202	worktype.flex.basic.contract_type	WT-02	기본 설정	계약 유형	enum		정규직,계약직&기간제	required=true	계약 유형		TRUE	TRUE	ST-22
+WTC-0203	worktype.flex.basic.weekly_holiday	WT-02	기본 설정	주휴일	enum		월,화,수,목,금,토,일,없음		주휴일 선택		FALSE	TRUE	ST-23
+WTC-0204	worktype.flex.basic.rest_day	WT-02	기본 설정	휴무일	enum		월,화,수,목,금,토,일,없음		휴무일 선택		FALSE	TRUE	ST-24
+WTC-0205	worktype.flex.work.base_unit	WT-02	근무 설정	기준	enum		일기준,주기준	required=true	기준 단위 선택		TRUE	TRUE	ST-25
+WTC-0206	worktype.flex.work.prescribed_work_time	WT-02	근무 설정	소정근로시간	time_duration	HH:MM		legal_fixed=true	소정근로시간 설정(법정 기준 선택 시 일 08:00/주 40:00 고정)		TRUE	TRUE	ST-26
+WTC-0207	worktype.flex.work.max_work_time	WT-02	근무 설정	최대근로시간	time_duration	HH:MM			최대근로시간 설정		FALSE	TRUE	ST-27
+WTC-0208	worktype.flex.work.start_time_range	WT-02	근무 설정	출근시간	time_range	HH:MM~HH:MM		start_lt_end=true	출근 허용 시간 범위		FALSE	TRUE	ST-28
+WTC-0209	worktype.flex.work.end_time_range	WT-02	근무 설정	퇴근시간	time_range	HH:MM~HH:MM		start_lt_end=true	퇴근 허용 시간 범위		FALSE	TRUE	ST-29
+WTC-0210	worktype.flex.work.break_time_range	WT-02	근무 설정	휴게시간	time_range	HH:MM~HH:MM		start_lt_end=true	휴게 시간대		FALSE	TRUE	ST-30
+WTC-0301	worktype.selective.basic.work_name	WT-03	기본 설정	근무형태명	string			required=true	근무 형태명		TRUE	TRUE	ST-31
+WTC-0302	worktype.selective.basic.contract_type	WT-03	기본 설정	계약 유형	enum		정규직,계약직&기간제	required=true	계약 유형		TRUE	TRUE	ST-32
+WTC-0303	worktype.selective.basic.weekly_holiday	WT-03	기본 설정	주휴일	enum		월,화,수,목,금,토,일,없음		주휴일 선택		FALSE	TRUE	ST-33
+WTC-0304	worktype.selective.basic.rest_day	WT-03	기본 설정	휴무일	enum		월,화,수,목,금,토,일,없음		휴무일 선택		FALSE	TRUE	ST-34
+WTC-0305	worktype.selective.work.week_basis_and_start_day	WT-03	근무 설정	기준	object		week_basis=true;week_start_day=월~일	required=true	주기준 운영 + 주 시작 요일(월~일) 설정		TRUE	TRUE	ST-35
+WTC-0306	worktype.selective.work.prescribed_work_time	WT-03	근무 설정	소정근로시간	time_duration	HH:MM		legal_fixed=true	소정근로시간 설정(법정 기준 선택 시 일 08:00/주 40:00 고정)		TRUE	TRUE	ST-36
+WTC-0307	worktype.selective.work.max_work_time	WT-03	근무 설정	최대근로시간	time_duration	HH:MM			최대근로시간 설정		FALSE	TRUE	ST-37
+WTC-0308	worktype.selective.work.weekday_time_profile	WT-03	근무 설정	요일별 출퇴근시간 & 휴게시간	object			weekday_profile=uniform|by_weekday	요일별 출퇴근/휴게를 동일 또는 상이하게 설정		FALSE	TRUE	ST-38
+WTC-0401	worktype.shift.basic.work_name	WT-04	기본 설정	근무형태명	string			required=true	근무 형태명		TRUE	TRUE	ST-39
+WTC-0402	worktype.shift.basic.contract_type	WT-04	기본 설정	계약 유형	enum		정규직,계약직&기간제	required=true	계약 유형		TRUE	TRUE	ST-40
+WTC-0403	worktype.shift.work.prescribed_work_time	WT-04	근무 설정	소정근로시간	time_duration	HH:MM		legal_fixed=true	소정근로시간 설정(법정 기준 선택 시 일 08:00/주 40:00 고정)		TRUE	TRUE	ST-41
+WTC-0404	worktype.shift.work.max_work_time	WT-04	근무 설정	최대근로시간	time_duration	HH:MM			최대근로시간 설정		FALSE	TRUE	ST-42
+WTC-0405	worktype.shift.work.start_time	WT-04	근무 설정	출근시간	time	HH:MM			출근 기준 시각		FALSE	TRUE	ST-43
+WTC-0406	worktype.shift.work.end_time	WT-04	근무 설정	퇴근시간	time	HH:MM			퇴근 기준 시각		FALSE	TRUE	ST-44
+WTC-0407	worktype.shift.work.break_time_range	WT-04	근무 설정	휴게시간	time_range	HH:MM~HH:MM		start_lt_end=true	휴게 시간대		FALSE	TRUE	ST-45

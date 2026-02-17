@@ -1,0 +1,11 @@
+policy_id	canonical_key	domain	option_name	value_type	value_unit	allowed_values	constraints	description	related_feature	is_active	legacy_state_id
+POL-01	policy.movement.checkpoint_log	근태 내역	이동 내역	record				모바일에서 이동-도착 기능 이용 시 기록으로 남음		TRUE	ST-53
+POL-02	policy.work_location.gps_log	근태 내역	근무지/위치 기록	record				실제 근무지 및 GPS 위치 기록		TRUE	ST-54
+POL-03	policy.beacon.devices_view	비콘 관련	비콘 현황	view				등록된 비콘 기기 정보 조회		TRUE	ST-55
+POL-04	policy.beacon.absence_view	비콘 관련	비콘 이석 현황	view				비콘이 설치된 장소에 오갔던 사용자 정보 기록		TRUE	ST-56
+POL-05	policy.worksite.category	근무지	근무지 구분	enum		본사,지사		본사/지사 등 구분 관리		TRUE	ST-57
+POL-06	policy.worksite.detail_schema	근무지	상세 근무지	object		근무지명,주소,위경도,출퇴근방식,반경		구분 내 개별 상세 근무지 관리: 근무지명, 주소, 위경도, 출퇴근방식(GPS/비콘), 반경범위 등록		TRUE	ST-58
+POL-07	policy.clock_in.gps.restricted	출퇴근 방식	GPS-위치제한 있음	policy	m		radius_min_m=50;radius_max_m=5000	반경 범위 설정 가능(50m~5km)		TRUE	ST-59
+POL-08	policy.clock_in.gps.unrestricted	출퇴근 방식	GPS-위치제한 없음	policy				위치제한 없이 어디서든 출퇴근 등록 가능		TRUE	ST-60
+POL-09	policy.clock_in.beacon.linked	출퇴근 방식	BEACON-비콘 연동	policy	m		max_distance_m=11	등록된 비콘 기기 중 연동 가능(비콘 탐지 최대 11m)		TRUE	ST-61
+POL-10	policy.beacon.absence_tracking_enabled	출퇴근 방식	BEACON-이석관리 사용	boolean		true,false		사용 시 비콘 이석관리 가능(기록은 비콘이석현황에서 조회 가능)		TRUE	ST-62

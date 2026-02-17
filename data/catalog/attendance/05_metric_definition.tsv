@@ -1,0 +1,8 @@
+metric_id	canonical_key	domain	metric_name	basis	description	input_refs	output_unit	related_feature	is_active	legacy_state_id
+MET-01	metric.clock_in_out.prescribed	근태 내역	출퇴근	소정근로시간 기준	근로계약서에 등록된 소정근로시간이 기준	prescribed_work_time	minutes		TRUE	ST-46
+MET-02	metric.clock_in_out.actual	근태 내역	출퇴근	실제근로시간 기준	실제 출근/퇴근 기록이 기준	check_in_time,check_out_time	minutes		TRUE	ST-47
+MET-03	metric.overtime.extension.approved	근태 내역	시간외-연장	승인문서 기준	시간외 신청/승인된 문서가 기준	approved_ot_doc(extension)	minutes		TRUE	ST-48
+MET-04	metric.overtime.night.approved	근태 내역	시간외-야간	승인문서 기준	시간외 신청/승인된 문서가 기준	approved_ot_doc(night)	minutes		TRUE	ST-49
+MET-05	metric.overtime.holiday.approved	근태 내역	시간외-휴일	승인문서 기준	시간외 신청/승인된 문서가 기준	approved_ot_doc(holiday)	minutes		TRUE	ST-50
+MET-06	metric.total_work_time.prescribed	근태 내역	총 근로시간	소정근로시간 기준	근로계약서 기준 소정근로시간 총합	prescribed_work_time,work_days	minutes		TRUE	ST-51
+MET-07	metric.total_work_time.actual	근태 내역	총 근로시간	실제근로시간 기준	실제 출근/퇴근 기록 기준 총합	check_in_time,check_out_time,break_time	minutes		TRUE	ST-52

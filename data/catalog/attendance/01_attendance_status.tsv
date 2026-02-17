@@ -1,0 +1,6 @@
+status_id	canonical_key	category	status_name	description	related_feature	is_active
+ATS-01	attendance.not_checked_in	근태 현황	미출근	출근 기록이 없는 상태		TRUE
+ATS-02	attendance.absent	근태 현황	결근	소정 근로일에 출근 기록 및 승인된 부재(휴가 등)가 없는 상태		TRUE
+ATS-03	attendance.late	근태 현황	지각	출근 기준 시각을 초과하여 출근한 상태		TRUE
+ATS-04	attendance.early_leave	근태 현황	이른퇴근	퇴근 기준 시각 이전에 퇴근한 상태		TRUE
+ATS-05	attendance.leave	근태 현황	휴가	승인된 휴가로 근무가 대체되는 상태		TRUE

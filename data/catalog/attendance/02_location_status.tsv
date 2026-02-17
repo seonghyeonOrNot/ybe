@@ -1,0 +1,6 @@
+loc_status_id	canonical_key	category	location_name	description	related_feature	is_active
+LOC-01	location.office	근무위치현황	사무실	지정 오피스(근무지)에서 근무		TRUE
+LOC-02	location.business_trip	근무위치현황	출장	출장 등록/승인 기반 근무		TRUE
+LOC-03	location.remote	근무위치현황	재택	재택 등록/승인 기반 근무		TRUE
+LOC-04	location.dispatch	근무위치현황	파견	파견 등록/승인 기반 근무		TRUE
+LOC-05	location.field_work	근무위치현황	외근	외근 등록/승인 기반 근무		TRUE

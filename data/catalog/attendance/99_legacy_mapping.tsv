@@ -1,0 +1,63 @@
+legacy_state_id	legacy_category	legacy_status	legacy_detail_level	legacy_option	legacy_description	new_entity	new_id	notes
+ST-01	근태 현황	미출근	-	-	-	AttendanceStatus	ATS-01	
+ST-02	근태 현황	결근	-	-	-	AttendanceStatus	ATS-02	
+ST-03	근태 현황	지각	-	-	-	AttendanceStatus	ATS-03	
+ST-04	근태 현황	이른퇴근	-	-	-	AttendanceStatus	ATS-04	
+ST-05	근태 현황	휴가	-	-	-	AttendanceStatus	ATS-05	
+ST-06	근무위치현황	사무실	-	-	-	WorkLocationStatus	LOC-01	
+ST-07	근무위치현황	출장	-	-	-	WorkLocationStatus	LOC-02	
+ST-08	근무위치현황	재택	-	-	-	WorkLocationStatus	LOC-03	
+ST-09	근무위치현황	파견	-	-	-	WorkLocationStatus	LOC-04	
+ST-10	근무위치현황	외근	-	-	-	WorkLocationStatus	LOC-05	
+ST-11	근무 유형	기본 근무	기본 설정	근무형태명	근무 형태명, 계약 유형, 주휴일, 휴무일 설정	WorkTypeConfigSchema	WTC-0101	
+ST-12	근무 유형	기본 근무	기본 설정	계약 유형	정규직/계약직&기간제	WorkTypeConfigSchema	WTC-0102	
+ST-13	근무 유형	기본 근무	기본 설정	주휴일	월~일요일/없음 중 선택 가능	WorkTypeConfigSchema	WTC-0103	
+ST-14	근무 유형	기본 근무	기본 설정	휴무일	월~일요일/없음 중 선택 가능	WorkTypeConfigSchema	WTC-0104	
+ST-15	근무 유형	기본 근무	근무 설정	기준	일/주기준 선택 가능	WorkTypeConfigSchema	WTC-0105	
+ST-16	근무 유형	기본 근무	근무 설정	소정근로시간	00시간00분 설정가능(법정 기준 선택시, 일기준 8시간 & 주기준 40시간으로 고정됨)	WorkTypeConfigSchema	WTC-0106	
+ST-17	근무 유형	기본 근무	근무 설정	최대근로시간	00시간00분 설정가능	WorkTypeConfigSchema	WTC-0107	
+ST-18	근무 유형	기본 근무	근무 설정	출근시간	00시간00분 설정가능	WorkTypeConfigSchema	WTC-0108	
+ST-19	근무 유형	기본 근무	근무 설정	퇴근시간	00시간00분 설정가능	WorkTypeConfigSchema	WTC-0109	
+ST-20	근무 유형	기본 근무	근무 설정	휴게시간	00시간00분 ~ 00시간00분 설정가능	WorkTypeConfigSchema	WTC-0110	
+ST-21	근무 유형	시차 근무	기본 설정	근무형태명	근무 형태명, 계약 유형, 주휴일, 휴무일 설정	WorkTypeConfigSchema	WTC-0201	
+ST-22	근무 유형	시차 근무	기본 설정	계약 유형	정규직/계약직&기간제	WorkTypeConfigSchema	WTC-0202	
+ST-23	근무 유형	시차 근무	기본 설정	주휴일	월~일요일/없음 중 선택 가능	WorkTypeConfigSchema	WTC-0203	
+ST-24	근무 유형	시차 근무	기본 설정	휴무일	월~일요일/없음 중 선택 가능	WorkTypeConfigSchema	WTC-0204	
+ST-25	근무 유형	시차 근무	근무 설정	기준	일/주기준 선택 가능	WorkTypeConfigSchema	WTC-0205	
+ST-26	근무 유형	시차 근무	근무 설정	소정근로시간	00시간00분 설정가능(법정 기준 선택시, 일기준 8시간 & 주기준 40시간으로 고정됨)	WorkTypeConfigSchema	WTC-0206	
+ST-27	근무 유형	시차 근무	근무 설정	최대근로시간	00시간00분 설정가능	WorkTypeConfigSchema	WTC-0207	
+ST-28	근무 유형	시차 근무	근무 설정	출근시간	00시간00분 ~ 00시간00분 설정가능	WorkTypeConfigSchema	WTC-0208	
+ST-29	근무 유형	시차 근무	근무 설정	퇴근시간	00시간00분 ~ 00시간00분 설정가능	WorkTypeConfigSchema	WTC-0209	
+ST-30	근무 유형	시차 근무	근무 설정	휴게시간	00시간00분 ~ 00시간00분 설정가능	WorkTypeConfigSchema	WTC-0210	
+ST-31	근무 유형	선택 근무	기본 설정	근무형태명	근무 형태명, 계약 유형, 주휴일, 휴무일 설정	WorkTypeConfigSchema	WTC-0301	
+ST-32	근무 유형	선택 근무	기본 설정	계약 유형	정규직/계약직&기간제	WorkTypeConfigSchema	WTC-0302	
+ST-33	근무 유형	선택 근무	기본 설정	주휴일	월~일요일/없음 중 선택 가능	WorkTypeConfigSchema	WTC-0303	
+ST-34	근무 유형	선택 근무	기본 설정	휴무일	월~일요일/없음 중 선택 가능	WorkTypeConfigSchema	WTC-0304	
+ST-35	근무 유형	선택 근무	근무 설정	기준	주기준 + 주 시작 요일 월~일요일 중 선택 가능	WorkTypeConfigSchema	WTC-0305	
+ST-36	근무 유형	선택 근무	근무 설정	소정근로시간	00시간00분 설정가능(법정 기준 선택시, 일기준 8시간 & 주기준 40시간으로 고정됨)	WorkTypeConfigSchema	WTC-0306	
+ST-37	근무 유형	선택 근무	근무 설정	최대근로시간	00시간00분 설정가능	WorkTypeConfigSchema	WTC-0307	
+ST-38	근무 유형	선택 근무	근무 설정	요일별 출퇴근시간 & 휴게시간	출퇴근 시간 및 휴게시간을 요일별 동일/상이하게 설정 가능	WorkTypeConfigSchema	WTC-0308	
+ST-39	근무 유형	교대 근무	기본 설정	근무형태명	근무 형태명, 계약 유형, 주휴일, 휴무일 설정	WorkTypeConfigSchema	WTC-0401	
+ST-40	근무 유형	교대 근무	기본 설정	계약 유형	정규직/계약직&기간제	WorkTypeConfigSchema	WTC-0402	
+ST-41	근무 유형	교대 근무	근무 설정	소정근로시간	00시간00분 설정가능(법정 기준 선택시, 일기준 8시간 & 주기준 40시간으로 고정됨)	WorkTypeConfigSchema	WTC-0403	
+ST-42	근무 유형	교대 근무	근무 설정	최대근로시간	00시간00분 설정가능	WorkTypeConfigSchema	WTC-0404	
+ST-43	근무 유형	교대 근무	근무 설정	출근시간	00시간00분 설정가능	WorkTypeConfigSchema	WTC-0405	
+ST-44	근무 유형	교대 근무	근무 설정	퇴근시간	00시간00분 설정가능	WorkTypeConfigSchema	WTC-0406	
+ST-45	근무 유형	교대 근무	근무 설정	휴게시간	00시간00분 ~ 00시간00분 설정가능	WorkTypeConfigSchema	WTC-0407	
+ST-46	근태 내역	출퇴근	소정근로시간 기준	-	근로계약서에 등록된 소정근로시간이 기준이 됨	MetricDefinition	MET-01	
+ST-47	근태 내역	출퇴근	실제근로시간 기준	-	실제 출근과 퇴근 기록이 기준이 됨	MetricDefinition	MET-02	
+ST-48	근태 내역	시간외	연장	-	시간외 신청/승인된 문서가 기준이 됨	MetricDefinition	MET-03	
+ST-49	근태 내역	시간외	야간	-	시간외 신청/승인된 문서가 기준이 됨	MetricDefinition	MET-04	
+ST-50	근태 내역	시간외	휴일	-	시간외 신청/승인된 문서가 기준이 됨	MetricDefinition	MET-05	
+ST-51	근태 내역	총 근로시간	소정근로시간 기준	-	근로계약서에 등록된 소정근로시간 기준 총합	MetricDefinition	MET-06	
+ST-52	근태 내역	총 근로시간	실제근로시간 기준	-	실제 출근과 퇴근 기록 기준 총합	MetricDefinition	MET-07	
+ST-53	근태 내역	이동	이동 내역	-	모바일에서 이동-도착 기능 이용시 기록으로 남음	PolicyOptionMaster	POL-01	
+ST-54	근태 내역	근무지/위치	-	-	실제 근무지 및 GPS 위치 기록	PolicyOptionMaster	POL-02	
+ST-55	비콘 관련	비콘 현황	-	-	등록된 비콘 기기 정보 조회	PolicyOptionMaster	POL-03	
+ST-56	비콘 관련	비콘 이석 현황	-	-	비콘이 설치된 장소에 오갔던 사용자 정보 기록	PolicyOptionMaster	POL-04	
+ST-57	근무지	구분	-	-	본사/지사 등 구분 관리	PolicyOptionMaster	POL-05	
+ST-58	근무지	상세 근무지	-	-	구분내 개별 상세 근무지 관리 : 근무지명, 주소, 위경도, 출퇴근방식(GPS/비콘), 반경범위 등록	PolicyOptionMaster	POL-06	
+ST-59	출퇴근 방식	GPS	위치제한 있음	-	반경 범위 설정 가능(50m~5km)	PolicyOptionMaster	POL-07	
+ST-60	출퇴근 방식	GPS	위치제한 없음	-	위치제한없이 어디서든 출퇴근 등록 가능	PolicyOptionMaster	POL-08	
+ST-61	출퇴근 방식	BEACON	비콘 연동	-	등록된 비콘 기기 중 연동 가능 (비콘 탐지는 최대 11m까지 가능)	PolicyOptionMaster	POL-09	
+ST-62	출퇴근 방식	BEACON	비콘으로 이석관리 사용여부 설정	-	사용시, 비콘 이석관리 가능(기록은 비콘이석현황에서 조회 가능)	PolicyOptionMaster	POL-10	
