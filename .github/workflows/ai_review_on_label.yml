@@ -20,20 +20,27 @@ jobs:
 
       - name: Build prompt
         shell: bash
-        run: bash scripts/ai_review/build_prompt.sh
+        run: |
+          bash scripts/ai_review/build_prompt.sh
+          {
+            echo "CLAUDE_PROMPT<<'EOF'"
+            cat prompt.txt
+            echo "EOF"
+          } >> "$GITHUB_ENV"
 
       - name: Run Claude Code and post comment
         uses: anthropics/claude-code-action@v1
         with:
-          prompt_file: prompt.txt
+          prompt: "${{ env.CLAUDE_PROMPT }}"
+          use_sticky_comment: "true"
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Mark done
         if: always()
         shell: bash
         run: bash scripts/ai_review/mark_done.sh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           GITHUB_JOB_STATUS: ${{ job.status }}
-
