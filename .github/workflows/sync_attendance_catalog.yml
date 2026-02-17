@@ -1,0 +1,79 @@
+name: Sync attendance catalog from Google Sheets (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare folders
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data/catalog/attendance/tmp
+
+      - name: Download CSV from Google Sheets (by gid)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SHEET_ID="1exPNABtZ2o0c-yANDmQhyj5fAynktYxmYbaohhAmbSs"
+
+          # Helper: download a gid -> csv file
+          dl () {
+            local gid="$1"
+            local out="$2"
+            local url="https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}"
+            echo "Downloading gid=${gid} -> ${out}"
+            curl -L --fail --retry 3 --retry-delay 2 "$url" -o "$out"
+          }
+
+          # ⚠️ 파일명은 고정(영문), 탭 이름(한글)은 상관 없음. gid가 진짜 소스.
+          # 아래 매핑은 "어떤 gid가 어떤 탭인지" 너가 정한 7개에 맞춰서 바꾸면 됨.
+          dl 0             data/catalog/attendance/tmp/01_attendance_status.csv
+          dl 1195190534    data/catalog/attendance/tmp/02_location_status.csv
+          dl 581265607     data/catalog/attendance/tmp/03_work_type.csv
+          dl 425472358     data/catalog/attendance/tmp/04_work_type_config_schema.csv
+          dl 1755518850    data/catalog/attendance/tmp/05_metric_definition.csv
+          dl 714365084     data/catalog/attendance/tmp/06_policy_master.csv
+          dl 1681252852    data/catalog/attendance/tmp/99_legacy_mapping.csv
+
+      - name: Convert CSV -> TSV (safe)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 scripts/csv_to_tsv.py data/catalog/attendance/tmp/01_attendance_status.csv       data/catalog/attendance/01_attendance_status.tsv
+          python3 scripts/csv_to_tsv.py data/catalog/attendance/tmp/02_location_status.csv         data/catalog/attendance/02_location_status.tsv
+          python3 scripts/csv_to_tsv.py data/catalog/attendance/tmp/03_work_type.csv               data/catalog/attendance/03_work_type.tsv
+          python3 scripts/csv_to_tsv.py data/catalog/attendance/tmp/04_work_type_config_schema.csv data/catalog/attendance/04_work_type_config_schema.tsv
+          python3 scripts/csv_to_tsv.py data/catalog/attendance/tmp/05_metric_definition.csv       data/catalog/attendance/05_metric_definition.tsv
+          python3 scripts/csv_to_tsv.py data/catalog/attendance/tmp/06_policy_master.csv           data/catalog/attendance/06_policy_master.tsv
+          python3 scripts/csv_to_tsv.py data/catalog/attendance/tmp/99_legacy_mapping.csv          data/catalog/attendance/99_legacy_mapping.tsv
+
+      - name: Cleanup tmp
+        shell: bash
+        run: |
+          rm -rf data/catalog/attendance/tmp
+
+      - name: Commit & push if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git status --porcelain | grep -q .; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/catalog/attendance/*.tsv
+            git commit -m "chore(catalog): sync attendance TSV from Google Sheets"
+            git push
+          else
+            echo "No changes."
+          fi
