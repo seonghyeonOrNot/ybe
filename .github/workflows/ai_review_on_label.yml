@@ -1,0 +1,170 @@
+name: AI Review on Issue Label
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  ai_review:
+    # ai-run 라벨이 붙었을 때만 실행
+    if: github.event.label.name == 'ai-run'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo (for catalog TSV + CLAUDE.md)
+        uses: actions/checkout@v4
+
+      - name: Build prompt by labels
+        id: prompt
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # 이슈 라벨 목록(JSON) → 문자열로 추출
+          LABELS='${{ toJson(github.event.issue.labels) }}'
+          echo "$LABELS" > labels.json
+
+          # 라벨 존재 여부 플래그
+          has_label () {
+            python3 - <<'PY'
+import json,sys
+labels=json.load(open("labels.json"))
+target=sys.argv[1]
+print("yes" if any(l.get("name")==target for l in labels) else "no")
+PY
+          }
+
+          FEATURE=$(has_label feature || true)
+          CS=$(has_label cs || true)
+          POLICY=$(has_label policy || true)
+          QA=$(has_label qa || true)
+          RISK=$(has_label risk || true)
+          DATA=$(has_label data || true)
+
+          # 라벨별 지시문(프롬프트) 조립
+          INSTR=""
+          if [ "$FEATURE" = "yes" ]; then
+            INSTR="$INSTR
+### [feature] 기능 이슈/설계 검토 산출물
+- As-is / To-be
+- 영향 범위(상태/정책/지표/설정스키마): data/catalog/attendance/*.tsv에서 근거 찾아 명시
+- 변경 필요 constraints(머신리더블) → 사용자 안내 문구(한 줄)
+- edge case 5개 이상
+- QA 시나리오(정상/경계/오류) 표
+- API 스키마 초안(필드/타입)
+"
+          fi
+
+          if [ "$CS" = "yes" ]; then
+            INSTR="$INSTR
+### [cs] 고객 문의 검토 산출물
+- 문의 요약(재현 조건 포함)
+- 원인 후보 Top 3(정책/상태/권한/환경 관점)
+- 확인 질문(최소) 5개 이내
+- 즉시 대응 가이드(운영/고객응대 문구 포함)
+- 제품 개선 필요 시: feature 관점 액션아이템
+"
+          fi
+
+          if [ "$POLICY" = "yes" ]; then
+            INSTR="$INSTR
+### [policy] 정책 정합성 검토 산출물
+- 정책 해석(기준/예외/충돌)
+- 관련 TSV 항목(canonical_key) 근거 제시
+- UI 안내 문구(한 줄) 3안
+- 감사/로그 포인트(무엇을 남겨야 하는지)
+"
+          fi
+
+          if [ "$QA" = "yes" ]; then
+            INSTR="$INSTR
+### [qa] QA 산출물
+- 테스트 케이스 표(정상/경계/오류)
+- 기대 결과는 정수(분/건수 등)로 명시
+- 데이터 준비(사전조건) 체크리스트
+"
+          fi
+
+          if [ "$RISK" = "yes" ]; then
+            INSTR="$INSTR
+### [risk] 리스크/컴플라이언스
+- 법/감사 관점 리스크
+- 완화 방안(로그/권한/보관/고지)
+"
+          fi
+
+          if [ "$DATA" = "yes" ]; then
+            INSTR="$INSTR
+### [data] 지표/계산
+- metric_definition.tsv 근거로 계산 기준 정리
+- 입력/출력 단위 및 데이터 소스 명시
+"
+          fi
+
+          # 기본값: 라벨이 하나도 없으면, 최소 feature처럼 동작
+          if [ -z "$INSTR" ]; then
+            INSTR="### [default]
+- 이슈 내용을 기준으로 기능/정책/QA 관점에서 종합 검토 결과 작성
+"
+          fi
+
+          # 최종 프롬프트 출력(이슈 본문 포함)
+          cat > prompt.txt <<EOF
+너는 PM/개발/QA/운영을 위한 실무 리뷰어다.
+Output language: Korean
+문서는 표 기반 구조를 우선하고, 계산값/기대결과는 정수로 명시한다.
+
+반드시 참고할 기준 데이터(Source of Truth):
+- data/catalog/attendance/*.tsv
+- CLAUDE.md의 Working Agreement
+
+아래 이슈 본문을 입력으로, 질문으로 끝내지 말고 가정을 두고 완성된 결과를 작성하라.
+
+[Issue Title]
+${{ github.event.issue.title }}
+
+[Issue Body]
+${{ github.event.issue.body }}
+
+[Labels]
+$(python3 - <<'PY'
+import json
+labels=json.load(open("labels.json"))
+print(", ".join([l["name"] for l in labels]))
+PY
+)
+
+[Required Outputs by Label]
+$INSTR
+EOF
+
+          echo "prompt_file=prompt.txt" >> $GITHUB_OUTPUT
+
+      - name: Run Claude Code and post comment
+        uses: anthropics/claude-code-action@v1
+        with:
+          # claude-code-action은 레포 파일을 읽을 수 있어서 TSV를 참조 가능
+          prompt_file: ${{ steps.prompt.outputs.prompt_file }}
+        env:
+          # repo secrets에 저장 필요
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Mark done (labels)
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+
+          # 실패/성공에 따라 라벨 처리
+          if [ "${{ job.status }}" = "success" ]; then
+            gh issue edit "$ISSUE_NUMBER" --remove-label "ai-run" --add-label "ai-done"
+          else
+            gh issue edit "$ISSUE_NUMBER" --remove-label "ai-run" --add-label "ai-fail"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
