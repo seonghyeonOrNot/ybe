@@ -1,4 +1,4 @@
-name: AI Review on Issue Label
+name: AI Review (single entry)
 
 on:
   issues:
@@ -22,23 +22,56 @@ jobs:
         shell: bash
         run: |
           bash scripts/ai_review/build_prompt.sh
-          {
-            echo "CLAUDE_PROMPT<<EOF"
-            cat prompt.txt
-            echo ""
-            echo "EOF"
-          } >> "$GITHUB_ENV"
 
-
-      - name: Run Claude Code and post comment
+      # 1) Claude 실행 결과를 파일로 저장 (액션이 지원하는 'display_report' 활용)
+      #    - display_report: true 로 Summary에 리포트가 나오게 유지
+      #    - show_full_output: true 로 로그에도 결과를 남김 (디버깅용)
+      - name: Run Claude Code (generate report)
+        id: claude
         uses: anthropics/claude-code-action@v1
         with:
-          prompt: "${{ env.CLAUDE_PROMPT }}"
-          use_sticky_comment: "true"
+          prompt: "${{ github.workspace }}/prompt.txt"
+          display_report: "true"
+          show_full_output: "true"
           anthropic_api_key: "${{ secrets.ANTHROPIC_API_KEY }}"
           github_token: "${{ github.token }}"
 
-      - name: Mark done
+      # 2) Summary에 나온 결과를 그대로 가져오긴 어렵기 때문에,
+      #    build_prompt.sh 단계에서 prompt.txt는 이미 만들어진 상태고,
+      #    우리는 "코멘트 파일"을 별도로 생성하도록 전략을 바꿈:
+      #    -> claude-code-action이 로그에 전체 출력(show_full_output)을 남기므로,
+      #       가장 단단한 방식은 "Claude가 직접 comment.md를 쓰게" 하는 것.
+      #
+      #    아래 step은 'comment.md가 레포에 생성됐는지' 확인하고,
+      #    없으면 실패로 처리하게 만든다.
+      - name: Ensure comment.md exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f comment.md ]; then
+            echo "comment.md not found. Make Claude write comment.md (see instruction below)."
+            ls -al
+            exit 1
+          fi
+
+      # 3) comment.md 내용을 이슈 코멘트로 POST (확정 동작)
+      - name: Post comment to issue
+        shell: bash
+        run: |
+          set -euo pipefail
+          ISSUE_NUMBER="$(jq -r '.issue.number' "$GITHUB_EVENT_PATH")"
+          REPO="${GITHUB_REPOSITORY:?}"
+          TOKEN="${{ github.token }}"
+
+          body=$(jq -Rs '{body: .}' < comment.md)
+
+          curl -sS -X POST \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/comments" \
+            -d "$body" >/dev/null
+
+      - name: Mark done / fail and cleanup ai-run
         if: always()
         shell: bash
         run: bash scripts/ai_review/mark_done.sh
