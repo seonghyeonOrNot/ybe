@@ -3,7 +3,13 @@ set -euo pipefail
 
 ISSUE_NUMBER="$(jq -r '.issue.number' "$GITHUB_EVENT_PATH")"
 REPO="${GITHUB_REPOSITORY:?}"
-TOKEN="${GITHUB_TOKEN:?}"
+
+# 둘 중 하나라도 있으면 사용
+TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-}}"
+if [ -z "$TOKEN" ]; then
+  echo "ERROR: GITHUB_TOKEN or GH_TOKEN is required"
+  exit 1
+fi
 
 labels=$(curl -sS \
   -H "Authorization: Bearer $TOKEN" \
