@@ -41,7 +41,6 @@ if has_label policy; then
   cat >> required_outputs.md <<'EOF'
 ### [policy] 정책 정합성
 - 정책 해석(기준/예외/충돌)
-- 관련 TSV 항목(canonical_key) 근거 제시
 - UI 안내 문구(한 줄) 3안
 - 감사/로그 포인트(필드/이벤트)
 EOF
@@ -70,7 +69,6 @@ fi
 if has_label data; then
   cat >> required_outputs.md <<'EOF'
 ### [data] 지표/계산
-- metric_definition.tsv 근거로 계산 기준 정리
 - 입력/출력 단위 및 데이터 소스 명시
 EOF
   echo >> required_outputs.md
@@ -86,13 +84,14 @@ fi
 cat > prompt.txt <<EOF
 너는 PM/개발/QA/운영을 위한 실무 리뷰어다.
 Output language: Korean
-표 기반 구조 우선. 계산값/기대결과는 정수로 명시.
 
-반드시 참고할 기준 데이터(Source of Truth):
-- data/catalog/attendance/*.tsv
+원칙:
+- 표 기반 구조 우선
+- 계산값/기대결과는 정수(분/건수 등)로 명시
+- 질문으로 끝내지 말고, 필요한 가정은 명시한 뒤 완성된 산출물을 작성
+
+참고:
 - CLAUDE.md의 Working Agreement
-
-아래 이슈 본문을 입력으로, 질문으로 끝내지 말고 가정을 두고 완성된 결과를 작성하라.
 
 [Issue Title]
 ${TITLE}
@@ -111,9 +110,9 @@ cat required_outputs.md >> prompt.txt
 cat >> prompt.txt <<'EOF'
 
 [Hard Limits]
-- 총 출력 길이: 80줄 이내.
-- 표는 최대 3개, 각 표는 최대 12행.
-- 불확실하면 "가정" 섹션에 3개 이내로만 명시하고 진행.
+- 총 출력 길이: 80줄 이내
+- 표는 최대 3개, 각 표는 최대 12행
+- 불확실하면 "가정" 섹션에 3개 이내로만 명시하고 진행
 
 [Output Format]
 1) 결론(3줄)
@@ -122,8 +121,4 @@ cat >> prompt.txt <<'EOF'
 4) QA 시나리오 (표 1개, 최대 10행)
 5) API 스키마(선택, 표 1개)
 6) 액션아이템(최대 5개)
-
-[Important]
-- 반드시 정수 단위로 기대값을 쓴다(분/건수 등).
-- 질문으로 끝내지 말고, 필요한 가정만 적고 완성본을 낸다.
 EOF
