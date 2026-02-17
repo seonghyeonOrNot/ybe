@@ -7,7 +7,6 @@ on:
 permissions:
   contents: read
   issues: write
-  id-token: write
 
 jobs:
   ai_review:
@@ -18,47 +17,78 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build prompt (and export to env)
+      - name: Build prompt
         shell: bash
         run: |
           bash scripts/ai_review/build_prompt.sh
-          {
-            echo "CLAUDE_PROMPT<<EOF"
-            cat prompt.txt
-            echo ""
-            echo "EOF"
-          } >> "$GITHUB_ENV"
 
-      - name: Run Claude Code
-        uses: anthropics/claude-code-action@v1
-        with:
-          prompt: "${{ env.CLAUDE_PROMPT }}"
-          display_report: "true"
-          show_full_output: "true"
-          anthropic_api_key: "${{ secrets.ANTHROPIC_API_KEY }}"
-          github_token: "${{ github.token }}"
-
-      - name: Ensure comment.md exists
+      - name: Call Anthropic API -> comment.md
         shell: bash
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           set -euo pipefail
-          if [ ! -f comment.md ]; then
-            echo "comment.md not found. (Claude must write comment.md)"
-            ls -al
+
+          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+            echo "ANTHROPIC_API_KEY is missing"
+            exit 1
+          fi
+
+          # prompt.txt를 JSON 안전 문자열로 만들기
+          PROMPT_JSON=$(jq -Rs . < prompt.txt)
+
+          # 모델은 여기서 원하는 걸로 바꿔도 됨
+          MODEL="claude-3-5-sonnet-20241022"
+          MAX_TOKENS=3000
+
+          payload=$(cat <<EOF
+          {
+            "model": "$MODEL",
+            "max_tokens": $MAX_TOKENS,
+            "messages": [
+              {"role":"user","content": $PROMPT_JSON}
+            ]
+          }
+EOF
+          )
+
+          # 호출
+          resp=$(curl -sS https://api.anthropic.com/v1/messages \
+            -H "content-type: application/json" \
+            -H "x-api-key: ${ANTHROPIC_API_KEY}" \
+            -H "anthropic-version: 2023-06-01" \
+            -d "$payload")
+
+          # 에러 체크
+          if echo "$resp" | jq -e '.type=="error"' >/dev/null 2>&1; then
+            echo "Anthropic API error:"
+            echo "$resp" | jq .
+            exit 1
+          fi
+
+          # text 추출 -> comment.md
+          echo "$resp" | jq -r '.content[] | select(.type=="text") | .text' > comment.md
+
+          # 빈 파일 방지
+          if [ ! -s comment.md ]; then
+            echo "comment.md is empty"
+            echo "$resp" | jq .
             exit 1
           fi
 
       - name: Post comment to issue
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           ISSUE_NUMBER="$(jq -r '.issue.number' "$GITHUB_EVENT_PATH")"
           REPO="${GITHUB_REPOSITORY:?}"
-          TOKEN="${{ github.token }}"
+
           body=$(jq -Rs '{body: .}' < comment.md)
 
           curl -sS -X POST \
-            -H "Authorization: Bearer $TOKEN" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/comments" \
             -d "$body" >/dev/null
