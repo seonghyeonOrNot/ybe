@@ -49,8 +49,8 @@ jobs:
               {"role":"user","content": $PROMPT_JSON}
             ]
           }
-EOF
-          )
+          EOF
+                    )
 
           # 호출
           resp=$(curl -sS https://api.anthropic.com/v1/messages \
@@ -76,27 +76,27 @@ EOF
             exit 1
           fi
 
-      - name: Post comment to issue
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          ISSUE_NUMBER="$(jq -r '.issue.number' "$GITHUB_EVENT_PATH")"
-          REPO="${GITHUB_REPOSITORY:?}"
+          - name: Post comment to issue
+            shell: bash
+            env:
+              GITHUB_TOKEN: ${{ github.token }}
+            run: |
+              set -euo pipefail
+              ISSUE_NUMBER="$(jq -r '.issue.number' "$GITHUB_EVENT_PATH")"
+              REPO="${GITHUB_REPOSITORY:?}"
+    
+              body=$(jq -Rs '{body: .}' < comment.md)
+    
+              curl -sS -X POST \
+                -H "Authorization: Bearer $GITHUB_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/comments" \
+                -d "$body" >/dev/null
 
-          body=$(jq -Rs '{body: .}' < comment.md)
-
-          curl -sS -X POST \
-            -H "Authorization: Bearer $GITHUB_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/comments" \
-            -d "$body" >/dev/null
-
-      - name: Mark done / fail and cleanup ai-run
-        if: always()
-        shell: bash
-        run: bash scripts/ai_review/mark_done.sh
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_JOB_STATUS: ${{ job.status }}
+          - name: Mark done / fail and cleanup ai-run
+            if: always()
+            shell: bash
+            run: bash scripts/ai_review/mark_done.sh
+            env:
+              GITHUB_TOKEN: ${{ github.token }}
+              GITHUB_JOB_STATUS: ${{ job.status }}
