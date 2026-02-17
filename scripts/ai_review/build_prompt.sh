@@ -108,5 +108,16 @@ EOF
 
 cat required_outputs.md >> prompt.txt
 
-반드시 최종 답변을 파일로도 저장하라: comment.md (Markdown).
-출력은 표 기반으로 작성하고, 마지막에 "END"를 한 줄로 추가하라.
+cat >> prompt.txt <<'EOF'
+
+[Output Rules]
+- 최종 결과는 Markdown으로 작성한다.
+- 결과는 표 기반 구조를 우선한다.
+- 계산값/기대결과는 반드시 정수로 명시한다.
+- 질문으로 끝내지 말고, 필요한 가정은 명시한 뒤 완성된 산출물을 작성한다.
+
+[IMPORTANT: Write to file]
+- 너의 최종 답변 전체를 리포지토리 루트에 있는 "comment.md" 파일로 저장하라.
+- 형식: Markdown
+- 마지막 줄에 반드시 "END" 한 줄을 추가하라.
+EOF
