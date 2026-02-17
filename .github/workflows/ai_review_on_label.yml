@@ -38,7 +38,7 @@ jobs:
           PROMPT_JSON=$(jq -Rs . < prompt.txt)
 
           # 모델은 여기서 원하는 걸로 바꿔도 됨
-          MODEL="opus-latest"
+          MODEL="claude-3-opus-latest"
           MAX_TOKENS=1200
 
           payload=$(cat <<EOF
