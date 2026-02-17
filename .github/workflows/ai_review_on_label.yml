@@ -34,5 +34,6 @@ jobs:
         shell: bash
         run: bash scripts/ai_review/mark_done.sh
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_JOB_STATUS: ${{ job.status }}
+
