@@ -35,9 +35,8 @@ jobs:
         with:
           prompt: "${{ env.CLAUDE_PROMPT }}"
           use_sticky_comment: "true"
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GITHUB_TOKEN: ${{ github.token }}
+          anthropic_api_key: "${{ secrets.ANTHROPIC_API_KEY }}"
+          github_token: "${{ github.token }}"
 
       - name: Mark done
         if: always()
