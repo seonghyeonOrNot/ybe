@@ -23,10 +23,12 @@ jobs:
         run: |
           bash scripts/ai_review/build_prompt.sh
           {
-            echo "CLAUDE_PROMPT<<'EOF'"
+            echo "CLAUDE_PROMPT<<EOF"
             cat prompt.txt
+            echo ""
             echo "EOF"
           } >> "$GITHUB_ENV"
+
 
       - name: Run Claude Code and post comment
         uses: anthropics/claude-code-action@v1
