@@ -107,3 +107,6 @@ ${LABELS_CSV}
 EOF
 
 cat required_outputs.md >> prompt.txt
+
+반드시 최종 답변을 파일로도 저장하라: comment.md (Markdown).
+출력은 표 기반으로 작성하고, 마지막에 "END"를 한 줄로 추가하라.
