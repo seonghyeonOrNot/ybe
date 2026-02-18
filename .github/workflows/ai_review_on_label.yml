@@ -114,6 +114,11 @@ jobs:
               exit 1
             fi
   
+      - name: Debug prompt (first 200 lines)
+        shell: bash
+        run: |
+          echo "=== prompt.txt head ==="
+          sed -n '1,200p' prompt.txt
 
       - name: Post comment to issue
         shell: bash
