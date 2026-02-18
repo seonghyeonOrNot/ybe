@@ -11,25 +11,27 @@ if [ -z "$TOKEN" ]; then
   exit 1
 fi
 
-labels=$(curl -sS \
+issue_json=$(curl -sS \
   -H "Authorization: Bearer $TOKEN" \
   -H "Accept: application/vnd.github+json" \
-  "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER" \
-  | jq -r '.labels[].name')
+  "https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER")
 
-new_labels=$(printf "%s\n" $labels | grep -v '^ai-run$' || true)
+# 라벨을 줄 단위로 안전하게 추출
+labels=$(echo "$issue_json" | jq -r '.labels[].name')
+
+# ai-run 제거 + (성공/실패 라벨은 상호배타로 정리)
+base_labels=$(printf "%s\n" "$labels" | grep -v -E '^(ai-run|ai-done|ai-fail)$' || true)
 
 if [ "${GITHUB_JOB_STATUS:-success}" = "success" ]; then
-  if ! printf "%s\n" $new_labels | grep -q '^ai-done$'; then
-    new_labels=$(printf "%s\n%s\n" "$new_labels" "ai-done")
-  fi
+  final_labels=$(printf "%s\nai-done\n" "$base_labels")
 else
-  if ! printf "%s\n" $new_labels | grep -q '^ai-fail$'; then
-    new_labels=$(printf "%s\n%s\n" "$new_labels" "ai-fail")
-  fi
+  final_labels=$(printf "%s\nai-fail\n" "$base_labels")
 fi
 
-json=$(printf "%s\n" $new_labels | jq -R . | jq -s '{labels: .}')
+# 빈 줄 제거 + 중복 제거
+final_labels=$(printf "%s\n" "$final_labels" | sed '/^$/d' | awk '!seen[$0]++')
+
+json=$(printf "%s\n" "$final_labels" | jq -R . | jq -s '{labels: .}')
 
 curl -sS -X PATCH \
   -H "Authorization: Bearer $TOKEN" \
