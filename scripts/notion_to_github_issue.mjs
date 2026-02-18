@@ -8,7 +8,7 @@ const GH_OWNER = process.env.GH_OWNER;
 const GH_REPO = process.env.GH_REPO;
 const NOTION_DB_ID = process.env.NOTION_TICKET_DATABASE_ID;
 
-// ✅ ai_label 허용 목록
+// ✅ Notion AI_Label(multi_select)에서 허용할 라벨만
 const ALLOWED_AI_LABELS = new Set(["feature", "cs", "policy", "qa", "risk", "data"]);
 
 function getPlainText(arr = []) {
@@ -17,8 +17,7 @@ function getPlainText(arr = []) {
 
 function getProp(props, name) {
   const p = props?.[name];
-  if (!p) return null;
-  return p;
+  return p ?? null;
 }
 
 function readTitle(props, name) {
@@ -35,21 +34,6 @@ function readText(props, name) {
   return "";
 }
 
-function readSelect(props, name) {
-  const p = getProp(props, name);
-  if (!p || p.type !== "select") return "";
-  return p.select?.name ?? "";
-}
-
-function readMultiSelect(props, name) {
-  const p = getProp(props, name);
-  if (!p || p.type !== "multi_select") return [];
-  return (p.multi_select ?? [])
-    .map((x) => x?.name ?? "")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
 function readStatus(props, name) {
   const p = getProp(props, name);
   if (!p || p.type !== "status") return "";
@@ -62,6 +46,15 @@ function readCheckbox(props, name) {
   return !!p.checkbox;
 }
 
+function readMultiSelect(props, name) {
+  const p = getProp(props, name);
+  if (!p || p.type !== "multi_select") return [];
+  return (p.multi_select ?? [])
+    .map((x) => x?.name ?? "")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 // Notion rich_text / title 텍스트 공통 읽기 (catalog_query용)
 function readRichOrTitleText(props, name) {
   const p = getProp(props, name);
@@ -72,19 +65,16 @@ function readRichOrTitleText(props, name) {
 }
 
 async function createGithubIssue({ title, body, labels = [] }) {
-  const res = await fetch(
-    `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/issues`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `token ${GH_TOKEN}`,
-        "Content-Type": "application/json",
-        Accept: "application/vnd.github+json",
-        "User-Agent": "notion-issue-bot",
-      },
-      body: JSON.stringify({ title, body, labels }),
-    }
-  );
+  const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/issues`, {
+    method: "POST",
+    headers: {
+      Authorization: `token ${GH_TOKEN}`,
+      "Content-Type": "application/json",
+      Accept: "application/vnd.github+json",
+      "User-Agent": "notion-issue-bot",
+    },
+    body: JSON.stringify({ title, body, labels }),
+  });
 
   if (!res.ok) {
     const text = await res.text();
@@ -130,14 +120,9 @@ async function main() {
 
     const featureName = readTitle(props, "Feature_Name") || "Untitled";
 
-    const summary =
-      readText(props, "Summary") ||
-      readText(props, "Summary AI") ||
-      "";
+    const summary = readText(props, "Summary") || readText(props, "Summary AI") || "";
 
-    const priority = readSelect(props, "Priority");
-
-    // ✅ Notion: AI_Label (multi_select)
+    // ✅ Notion: AI_Label (multi_select) -> GitHub labels
     const aiLabelsRaw = readMultiSelect(props, "AI_Label");
     const aiLabelsNorm = aiLabelsRaw.map((s) => s.toLowerCase());
 
@@ -155,23 +140,10 @@ async function main() {
     console.log(`AI_Label(apply)=${aiLabelsToApply.length ? aiLabelsToApply.join(", ") : "-"}`);
     console.log(`CatalogQuery=${catalogQuery ? "OK" : "EMPTY"}`);
 
-    // ✅ labels 구성
-    const labels = [];
+    // ✅ labels는 오직 AI_Label 기반만 사용 (ai-run은 수동)
+    const labelsDedup = [...new Set(aiLabelsToApply)];
 
-    if (priority) labels.push(priority.toLowerCase());
-
-    // ✅ AI_Label 매핑 라벨 자동 부착 (ai-run은 수동)
-    for (const l of aiLabelsToApply) labels.push(l);
-
-    // ✅ 기존 라벨 유지
-    labels.push("ready-for-guide");
-
-    if (!catalogQuery) labels.push("needs-catalog-query");
-
-    // 중복 제거
-    const labelsDedup = [...new Set(labels)];
-
-    console.log(`Labels to create=${labelsDedup.join(", ")}`);
+    console.log(`Labels to create=${labelsDedup.join(", ") || "(none)"}`);
 
     const specId =
       props?.Spec_ID?.type === "unique_id"
@@ -195,13 +167,12 @@ ${catalogBlock}
 ${summary || "-"}
 
 ### 🧩 Meta
-- Priority: ${priority || "-"}
 - Notion Status: ${status}
-- AI_Label: ${aiLabelsToApply.length ? aiLabelsToApply.join(", ") : "-"}
+- AI_Label: ${labelsDedup.length ? labelsDedup.join(", ") : "-"}
 `.trim();
 
     const issue = await createGithubIssue({
-      title: `[${priority || "TASK"}] ${featureName}`,
+      title: `${featureName}`,
       body,
       labels: labelsDedup,
     });
