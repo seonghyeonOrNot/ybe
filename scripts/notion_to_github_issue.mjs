@@ -116,6 +116,7 @@ async function main() {
     const featureName = readTitle(props, "Feature_Name") || "Untitled";
     const summary = readText(props, "Summary");
     const priority = readSelect(props, "Priority");
+    const aiLabel = readSelect(props, "ai_label"); // Notion select: feature/cs/policy/qa/risk/data
 
     const status = readStatus(props, "Status");
     const issueCreated = readCheckbox(props, "Issue Created?");
@@ -125,16 +126,22 @@ async function main() {
 
     console.log(`\n---\n📌 ${featureName}`);
     console.log(`Status=${status}, IssueCreated=${issueCreated}`);
+    console.log(`AI_Label=${aiLabel || "-"}`);
     console.log(`CatalogQuery=${catalogQuery ? "OK" : "EMPTY"}`);
 
     const labels = [];
     if (priority) labels.push(priority.toLowerCase());
-
-    // ✅ 라벨 통일: 가이드 생성 트리거
+    
+    // ✅ Notion ai_label → GitHub label 자동 부착 (ai-run은 수동 유지)
+    const allowedAiLabels = new Set(["feature", "cs", "policy", "qa", "risk", "data"]);
+    if (aiLabel && allowedAiLabels.has(aiLabel)) labels.push(aiLabel);
+    
+    // ✅ 기존 라벨 유지(너 원하면 유지/삭제 선택 가능)
     labels.push("ready-for-guide");
-
+    
     // ✅ catalog_query 없으면 안전장치 라벨
     if (!catalogQuery) labels.push("needs-catalog-query");
+
 
     const specId =
       props?.Spec_ID?.type === "unique_id"
