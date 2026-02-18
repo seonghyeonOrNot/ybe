@@ -8,6 +8,9 @@ const GH_OWNER = process.env.GH_OWNER;
 const GH_REPO = process.env.GH_REPO;
 const NOTION_DB_ID = process.env.NOTION_TICKET_DATABASE_ID;
 
+// ✅ ai_label 허용 목록 (루프 밖에 1회)
+const ALLOWED_AI_LABELS = new Set(["feature", "cs", "policy", "qa", "risk", "data"]);
+
 function getPlainText(arr = []) {
   return arr.map((t) => t.plain_text).join("").trim();
 }
@@ -60,16 +63,19 @@ function readRichOrTitleText(props, name) {
 }
 
 async function createGithubIssue({ title, body, labels = [] }) {
-  const res = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/issues`, {
-    method: "POST",
-    headers: {
-      Authorization: `token ${GH_TOKEN}`,
-      "Content-Type": "application/json",
-      Accept: "application/vnd.github+json",
-      "User-Agent": "notion-issue-bot",
-    },
-    body: JSON.stringify({ title, body, labels }),
-  });
+  const res = await fetch(
+    `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/issues`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `token ${GH_TOKEN}`,
+        "Content-Type": "application/json",
+        Accept: "application/vnd.github+json",
+        "User-Agent": "notion-issue-bot",
+      },
+      body: JSON.stringify({ title, body, labels }),
+    }
+  );
 
   if (!res.ok) {
     const text = await res.text();
@@ -114,34 +120,47 @@ async function main() {
     const props = page.properties;
 
     const featureName = readTitle(props, "Feature_Name") || "Untitled";
-    const summary = readText(props, "Summary");
+
+    // Summary 컬럼명이 다를 수 있어 대비 (Summary / Summary AI)
+    const summary =
+      readText(props, "Summary") ||
+      readText(props, "Summary AI") ||
+      "";
+
     const priority = readSelect(props, "Priority");
-   const aiLabel = (readSelect(props, "AI_Label") || "").trim().toLowerCase(); // Notion select: feature/cs/policy/qa/risk/data
+
+    // ✅ Notion 컬럼명: AI_Label (select)
+    const aiLabelRaw = readSelect(props, "AI_Label");
+    const aiLabel = (aiLabelRaw || "").trim().toLowerCase();
 
     const status = readStatus(props, "Status");
     const issueCreated = readCheckbox(props, "Issue Created?");
 
-    // Phase 2: catalog_query 읽기 (Notion DB에 catalog_query 속성 필요)
+    // Phase 2: catalog_query 읽기
     const catalogQuery = readRichOrTitleText(props, "catalog_query");
 
     console.log(`\n---\n📌 ${featureName}`);
     console.log(`Status=${status}, IssueCreated=${issueCreated}`);
-    console.log(`AI_Label=${aiLabel || "-"}`);
+    console.log(`AI_Label(raw)=${aiLabelRaw || "-"}`);
+    console.log(`AI_Label(norm)=${aiLabel || "-"}`);
     console.log(`CatalogQuery=${catalogQuery ? "OK" : "EMPTY"}`);
 
+    // ✅ labels 구성은 여기서
     const labels = [];
     if (priority) labels.push(priority.toLowerCase());
-    
-    // ✅ Notion ai_label → GitHub label 자동 부착 (ai-run은 수동 유지)
-    const allowedAiLabels = new Set(["feature", "cs", "policy", "qa", "risk", "data"]);
-    if (aiLabel && allowedAiLabels.has(aiLabel)) labels.push(aiLabel);
-    
-    // ✅ 기존 라벨 유지(너 원하면 유지/삭제 선택 가능)
+
+    // ✅ ai_label → GitHub 라벨 자동 부착 (ai-run은 수동)
+    if (aiLabel && ALLOWED_AI_LABELS.has(aiLabel)) {
+      labels.push(aiLabel);
+    }
+
+    // ✅ 기존 라벨 유지
     labels.push("ready-for-guide");
-    
+
     // ✅ catalog_query 없으면 안전장치 라벨
     if (!catalogQuery) labels.push("needs-catalog-query");
 
+    console.log(`Labels to create=${labels.join(", ")}`);
 
     const specId =
       props?.Spec_ID?.type === "unique_id"
@@ -167,6 +186,7 @@ ${summary || "-"}
 ### 🧩 Meta
 - Priority: ${priority || "-"}
 - Notion Status: ${status}
+- AI_Label: ${aiLabel || "-"}
 `.trim();
 
     const issue = await createGithubIssue({
