@@ -8,7 +8,7 @@ const GH_OWNER = process.env.GH_OWNER;
 const GH_REPO = process.env.GH_REPO;
 const NOTION_DB_ID = process.env.NOTION_TICKET_DATABASE_ID;
 
-// ✅ ai_label 허용 목록 (루프 밖에 1회)
+// ✅ ai_label 허용 목록
 const ALLOWED_AI_LABELS = new Set(["feature", "cs", "policy", "qa", "risk", "data"]);
 
 function getPlainText(arr = []) {
@@ -39,6 +39,15 @@ function readSelect(props, name) {
   const p = getProp(props, name);
   if (!p || p.type !== "select") return "";
   return p.select?.name ?? "";
+}
+
+function readMultiSelect(props, name) {
+  const p = getProp(props, name);
+  if (!p || p.type !== "multi_select") return [];
+  return (p.multi_select ?? [])
+    .map((x) => x?.name ?? "")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 function readStatus(props, name) {
@@ -121,7 +130,6 @@ async function main() {
 
     const featureName = readTitle(props, "Feature_Name") || "Untitled";
 
-    // Summary 컬럼명이 다를 수 있어 대비 (Summary / Summary AI)
     const summary =
       readText(props, "Summary") ||
       readText(props, "Summary AI") ||
@@ -129,38 +137,41 @@ async function main() {
 
     const priority = readSelect(props, "Priority");
 
-    // ✅ Notion 컬럼명: AI_Label (select)
-    const aiLabelRaw = readSelect(props, "AI_Label");
-    const aiLabel = (aiLabelRaw || "").trim().toLowerCase();
+    // ✅ Notion: AI_Label (multi_select)
+    const aiLabelsRaw = readMultiSelect(props, "AI_Label");
+    const aiLabelsNorm = aiLabelsRaw.map((s) => s.toLowerCase());
+
+    // 허용 목록과 매칭되는 라벨만 추출
+    const aiLabelsToApply = aiLabelsNorm.filter((x) => ALLOWED_AI_LABELS.has(x));
 
     const status = readStatus(props, "Status");
     const issueCreated = readCheckbox(props, "Issue Created?");
 
-    // Phase 2: catalog_query 읽기
     const catalogQuery = readRichOrTitleText(props, "catalog_query");
 
     console.log(`\n---\n📌 ${featureName}`);
     console.log(`Status=${status}, IssueCreated=${issueCreated}`);
-    console.log(`AI_Label(raw)=${aiLabelRaw || "-"}`);
-    console.log(`AI_Label(norm)=${aiLabel || "-"}`);
+    console.log(`AI_Label(raw)=${aiLabelsRaw.length ? aiLabelsRaw.join(", ") : "-"}`);
+    console.log(`AI_Label(apply)=${aiLabelsToApply.length ? aiLabelsToApply.join(", ") : "-"}`);
     console.log(`CatalogQuery=${catalogQuery ? "OK" : "EMPTY"}`);
 
-    // ✅ labels 구성은 여기서
+    // ✅ labels 구성
     const labels = [];
+
     if (priority) labels.push(priority.toLowerCase());
 
-    // ✅ ai_label → GitHub 라벨 자동 부착 (ai-run은 수동)
-    if (aiLabel && ALLOWED_AI_LABELS.has(aiLabel)) {
-      labels.push(aiLabel);
-    }
+    // ✅ AI_Label 매핑 라벨 자동 부착 (ai-run은 수동)
+    for (const l of aiLabelsToApply) labels.push(l);
 
     // ✅ 기존 라벨 유지
     labels.push("ready-for-guide");
 
-    // ✅ catalog_query 없으면 안전장치 라벨
     if (!catalogQuery) labels.push("needs-catalog-query");
 
-    console.log(`Labels to create=${labels.join(", ")}`);
+    // 중복 제거
+    const labelsDedup = [...new Set(labels)];
+
+    console.log(`Labels to create=${labelsDedup.join(", ")}`);
 
     const specId =
       props?.Spec_ID?.type === "unique_id"
@@ -186,13 +197,13 @@ ${summary || "-"}
 ### 🧩 Meta
 - Priority: ${priority || "-"}
 - Notion Status: ${status}
-- AI_Label: ${aiLabel || "-"}
+- AI_Label: ${aiLabelsToApply.length ? aiLabelsToApply.join(", ") : "-"}
 `.trim();
 
     const issue = await createGithubIssue({
       title: `[${priority || "TASK"}] ${featureName}`,
       body,
-      labels,
+      labels: labelsDedup,
     });
 
     console.log(`✅ Created Issue: ${issue.html_url}`);
