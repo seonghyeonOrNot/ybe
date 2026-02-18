@@ -116,7 +116,7 @@ async function main() {
     const featureName = readTitle(props, "Feature_Name") || "Untitled";
     const summary = readText(props, "Summary");
     const priority = readSelect(props, "Priority");
-    const aiLabel = readSelect(props, "ai_label"); // Notion select: feature/cs/policy/qa/risk/data
+   const aiLabel = (readSelect(props, "AI_Label") || "").trim().toLowerCase(); // Notion select: feature/cs/policy/qa/risk/data
 
     const status = readStatus(props, "Status");
     const issueCreated = readCheckbox(props, "Issue Created?");
