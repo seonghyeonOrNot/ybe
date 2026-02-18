@@ -28,80 +28,92 @@ jobs:
         run: |
           bash scripts/ai_review/build_prompt.sh
 
-      - name: Call Anthropic API -> comment.md
-        shell: bash
+            - name: Call Anthropic API -> comment.md
+          shell: bash
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: |
-          set -euo pipefail
-
-          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-            echo "ANTHROPIC_API_KEY is missing"
-            exit 1
-          fi
-
-          if [ ! -f prompt.txt ]; then
-            echo "prompt.txt not found"
-            ls -al
-            exit 1
-          fi
-
-          PROMPT_JSON=$(jq -Rs . < prompt.txt)
-
-          # 모델 자동 선택: 네 키로 사용 가능한 모델 중 sonnet 우선, 없으면 첫 번째
-          MODELS_JSON=$(curl -sS https://api.anthropic.com/v1/models \
-            -H "x-api-key: ${ANTHROPIC_API_KEY}" \
-            -H "anthropic-version: 2023-06-01")
-
-          MODEL=$(echo "$MODELS_JSON" | jq -r '.data[].id' | grep -i 'sonnet' | head -n 1 || true)
-          if [ -z "${MODEL:-}" ]; then
-            MODEL=$(echo "$MODELS_JSON" | jq -r '.data[].id' | head -n 1 || true)
-          fi
-
-          if [ -z "${MODEL:-}" ]; then
-            echo "No available models returned from /v1/models"
-            echo "$MODELS_JSON" | jq .
-            exit 1
-          fi
-
-          echo "Using model: ${MODEL}"
-
-          MAX_TOKENS=1200
-          TEMPERATURE=0.2
-
-          payload=$(jq -n \
-            --arg model "$MODEL" \
-            --argjson max_tokens "$MAX_TOKENS" \
-            --argjson temperature "$TEMPERATURE" \
-            --arg content "$PROMPT_JSON" \
-            '{
-              model: $model,
-              max_tokens: $max_tokens,
-              temperature: $temperature,
-              messages: [
-                {role:"user", content: ($content | fromjson)}
-              ]
-            }')
-
-          resp=$(curl -sS https://api.anthropic.com/v1/messages \
-            -H "content-type: application/json" \
-            -H "x-api-key: ${ANTHROPIC_API_KEY}" \
-            -H "anthropic-version: 2023-06-01" \
-            -d "$payload")
-
-          if echo "$resp" | jq -e '.type=="error"' >/dev/null 2>&1; then
-            echo "Anthropic API error:"
-            echo "$resp" | jq .
-            exit 1
-          fi
-
-          echo "$resp" | jq -r '.content[] | select(.type=="text") | .text' > comment.md
-
-          if [ ! -s comment.md ]; then
-            echo "comment.md is empty"
-            echo "$resp" | jq .
-            exit 1
-          fi
+          run: |
+            set -euo pipefail
+  
+            if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+              echo "ANTHROPIC_API_KEY is missing"
+              exit 1
+            fi
+  
+            if [ ! -f prompt.txt ]; then
+              echo "prompt.txt not found"
+              ls -al
+              exit 1
+            fi
+  
+            # prompt.txt -> JSON string (safe)
+            PROMPT_JSON=$(jq -Rs . < prompt.txt)
+  
+            # ✅ 안정화: 모델 고정 (불필요한 /v1/models 호출 제거)
+            MODEL="claude-sonnet-4-6"
+  
+            echo "Using model: ${MODEL}"
+  
+            MAX_TOKENS=1200
+            TEMPERATURE=0.2
+  
+            payload=$(jq -n \
+              --arg model "$MODEL" \
+              --argjson max_tokens "$MAX_TOKENS" \
+              --argjson temperature "$TEMPERATURE" \
+              --arg content "$PROMPT_JSON" \
+              '{
+                model: $model,
+                max_tokens: $max_tokens,
+                temperature: $temperature,
+                messages: [
+                  {role:"user", content: ($content | fromjson)}
+                ]
+              }')
+  
+            # ✅ 안정화: overloaded/rate_limit 재시도 + 백오프
+            attempt=0
+            max_attempts=5
+  
+            while true; do
+              attempt=$((attempt+1))
+              echo "Anthropic request attempt ${attempt}/${max_attempts}..."
+  
+              resp=$(curl -sS https://api.anthropic.com/v1/messages \
+                -H "content-type: application/json" \
+                -H "x-api-key: ${ANTHROPIC_API_KEY}" \
+                -H "anthropic-version: 2023-06-01" \
+                -d "$payload" || true)
+  
+              if echo "$resp" | jq -e '.type=="error"' >/dev/null 2>&1; then
+                err_type=$(echo "$resp" | jq -r '.error.type // empty')
+                echo "Anthropic API error: ${err_type}"
+                echo "$resp" | jq .
+  
+                # overloaded / rate_limit 은 재시도
+                if [ "$err_type" = "overloaded_error" ] || [ "$err_type" = "rate_limit_error" ]; then
+                  if [ "$attempt" -lt "$max_attempts" ]; then
+                    sleep_sec=$(( attempt * attempt * 4 ))  # 4,16,36,64...
+                    echo "Retrying in ${sleep_sec}s..."
+                    sleep "$sleep_sec"
+                    continue
+                  fi
+                fi
+  
+                exit 1
+              fi
+  
+              break
+            done
+  
+            echo "$resp" | jq -r '.content[] | select(.type=="text") | .text' > comment.md
+  
+            if [ ! -s comment.md ]; then
+              echo "comment.md is empty"
+              echo "$resp" | jq .
+              exit 1
+            fi
+  
 
       - name: Post comment to issue
         shell: bash
