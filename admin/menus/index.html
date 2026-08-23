@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>휴가 대상자 관리 · y-BE</title>
+<link rel="stylesheet" href="../../shared/components.css" />
+<style>
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .filter-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .layout-2col { display: flex; gap: 20px; }
+  .tree-panel {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--color-surface);
+    border-radius: var(--radius-card);
+    padding: 16px;
+  }
+  .tree-panel .dept { font-weight: 700; font-size: var(--font-body-size); margin: 10px 0 4px; }
+  .tree-panel .member { font-size: var(--font-body-size); color: var(--color-text-muted); padding: 4px 0 4px 18px; }
+  .table-panel { flex: 1; min-width: 0; }
+</style>
+</head>
+<body>
+
+<div class="gnb">
+  <div>Y-BE</div>
+  <div>로그아웃</div>
+</div>
+
+<div class="app-shell">
+  <nav class="lnb">
+    <div class="menu-item active">근태/휴가 관리</div>
+    <div class="menu-item">조직·구성원 관리</div>
+    <div class="menu-item">전자계약 현황</div>
+    <div class="menu-item">게시판 관리</div>
+  </nav>
+
+  <main class="content-area">
+    <h1 class="page-title">휴가 대상자 관리</h1>
+
+    <div class="filter-row">
+      <div class="filter-field">
+        <span class="filter-label">휴가 연도</span>
+        <select><option>2026</option></select>
+      </div>
+      <div class="filter-field">
+        <span class="filter-label">휴가 형태</span>
+        <select><option>전체</option></select>
+      </div>
+      <div class="filter-field">
+        <span class="filter-label">부여 방식</span>
+        <select><option>전체</option></select>
+      </div>
+      <div class="filter-field locked">
+        <span class="filter-label">상태</span>
+        <select><option>전체</option></select>
+      </div>
+      <input class="input-pill" placeholder="이름/직책/부서명 검색" style="width:220px" />
+      <button class="btn point">검색</button>
+      <button class="btn outline point">초기화</button>
+
+      <div style="margin-left:auto; display:flex; gap:10px;">
+        <button class="btn outline positive">엑셀 다운로드</button>
+        <button class="btn point3" onclick="document.getElementById('registerModal').style.display='flex'">휴가 대상자 등록</button>
+      </div>
+    </div>
+
+    <div class="layout-2col">
+      <aside class="tree-panel">
+        <input class="input-pill" placeholder="이름/직책/부서명" style="width:100%; margin-bottom:12px;" />
+        <label><input type="checkbox" /> 전체선택</label>
+        <div class="dept">운영팀/본사 (65)</div>
+        <div class="member">이광호 사원B/팀장B</div>
+        <div class="member">고유리 사원B/부팀장B</div>
+        <div class="member">서수연 사원D/직책크</div>
+        <div class="dept">실험부서 (56)</div>
+      </aside>
+
+      <section class="table-panel">
+        <div class="table-wrap">
+          <table class="ybe-table">
+            <thead>
+              <tr>
+                <th>no</th><th>최신 등록일</th><th>대상자</th><th>휴가 형태(상세)</th>
+                <th>부여 방식</th><th>적용 기간</th><th>사용 조건</th><th>사용 현황</th>
+                <th>상태</th><th>이력</th><th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="leaveTableBody">
+              <!-- JS로 렌더 -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- 휴가 대상자 등록 모달 -->
+<div class="modal-overlay" id="registerModal" style="display:none;">
+  <div class="modal mid">
+    <div class="modal-header">
+      <h2>휴가 대상자 등록</h2>
+      <button class="modal-close" onclick="document.getElementById('registerModal').style.display='none'">✕</button>
+    </div>
+    <p style="color:var(--color-text-muted); font-size:var(--font-body-size);">조직도에서 대상자를 먼저 선택해 주세요.</p>
+
+    <div style="margin-bottom:16px;">
+      <label style="font-weight:700; display:block; margin-bottom:6px;">휴가 형태</label>
+      <button class="btn point3">대상 휴가</button>
+      <select><option>휴가 형태 선택</option></select>
+      <input class="input-pill" placeholder="최대 10글자 상세 입력" />
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label style="font-weight:700; display:block; margin-bottom:6px;">부여 방식</label>
+      <label><input type="radio" name="grant" /> 총량 차감형</label>
+      <label style="margin-left:16px;"><input type="radio" name="grant" checked /> 반복 사용형</label>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label style="font-weight:700; display:block; margin-bottom:6px;">반복 주기</label>
+      <select><option>매주</option><option>매월</option></select>
+      <select><option>일요일</option></select> 기준
+      <input class="input-pill" style="width:60px" value="8" /> 시간
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label style="font-weight:700; display:block; margin-bottom:6px;">적용 기간</label>
+      <input class="input-pill" value="2026-08-01" /> ~ <input class="input-pill" value="2027-01-31" />
+      <span style="color:var(--color-text-muted); font-size:var(--font-caption-size);">(총 26주)</span>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label style="font-weight:700; display:block; margin-bottom:6px;">사용 조건</label>
+      <label><input type="radio" name="cond" /> 제한 없음</label>
+      <label style="margin-left:16px;"><input type="radio" name="cond" checked /> 공휴일 포함 주 사용 불가</label>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn outline point" onclick="document.getElementById('registerModal').style.display='none'">취소</button>
+      <button class="btn point">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 기능정의서 로직: 상태(예정/사용중/종료)는 현재 일자 기준 산출, 반복사용형은 회차 단위 노출
+  const rows = [
+    { no: 27, date: "2026-07-30", target: "운영팀/본사<br>서수연 사원B/직책크", type: "휴가 기능 테스트(대상)_7시간", grant: "일반 사용", period: "2026-08-02 ~ 2026-08-08", cond: "-", usage: "사용 0시간/0일<br>잔여 8시간/1일", status: "scheduled", statusLabel: "예정" },
+    { no: 26, date: "2026-07-30", target: "운영팀/본사<br>서수연 사원B/직책크", type: "휴가등록해불까", grant: "일반 사용", period: "2026-08-02 ~ 2026-08-08", cond: "-", usage: "사용 0시간/0일<br>잔여 5시간/0일", status: "inuse", statusLabel: "사용 중" },
+    { no: 23, date: "2026-05-27", target: "신설부서<br>9_test_3 사원_", type: "2026 아호데이", grant: "반복 사용", period: "2026-01-31 ~ 2026-12-31(총48회)", cond: "공휴일 포함 주 사용 불가", usage: "사용 1.5회<br>잔여 46.5회", status: "inuse", statusLabel: "사용 중" },
+    { no: 18, date: "2026-05-20", target: "운영팀/본사<br>이광호 사원B/팀장B", type: "2026 아호데이", grant: "반복 사용", period: "2026-01-31 ~ 2026-12-31(총48회)", cond: "공휴일 포함 주 사용 불가", usage: "사용 1회<br>잔여 47회", status: "done", statusLabel: "종료" },
+  ];
+
+  const statusClass = { scheduled: "status-scheduled", inuse: "status-inuse", done: "status-done" };
+
+  document.getElementById("leaveTableBody").innerHTML = rows.map(r => `
+    <tr>
+      <td>${r.no}</td>
+      <td>${r.date}</td>
+      <td>${r.target}</td>
+      <td>${r.type}</td>
+      <td>${r.grant}</td>
+      <td>${r.period}</td>
+      <td>${r.cond}</td>
+      <td>${r.usage}</td>
+      <td><span class="badge ${statusClass[r.status]}">${r.statusLabel}</span></td>
+      <td><button class="btn small outline positive">변경</button> <button class="btn small outline positive">사용</button></td>
+      <td><button class="btn small point">수정</button> <button class="btn small outline point3">삭제</button></td>
+    </tr>
+  `).join("");
+</script>
+
+</body>
+</html>
