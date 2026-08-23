@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>연차/휴가 사용 내역 · y-BE</title>
+<link rel="stylesheet" href="../shared/components.css" />
+</head>
+<body>
+
+<div class="gnb">
+  <div class="gnb-left">
+    <span class="logo">Y-BE</span>
+    <span class="company">와이비이 주식회사</span>
+  </div>
+  <div class="gnb-right">
+    <span>관리자 · 김성현</span>
+    <span class="company">로그아웃</span>
+  </div>
+</div>
+
+<div class="app-shell">
+  <nav class="lnb">
+    <div class="menu-item on">근태/휴가 관리</div>
+    <div class="sub-item">휴가 대상자 관리</div>
+    <div class="sub-item active">연차/휴가 사용 내역</div>
+    <div class="sub-item">근태 현황</div>
+    <div class="menu-item">조직·구성원 관리</div>
+    <div class="menu-item">전자계약 현황</div>
+    <div class="menu-item">연차 설정</div>
+    <div class="menu-item">게시판 관리</div>
+  </nav>
+
+  <main class="content-area">
+    <div class="page-head">
+      <h1 class="page-title">연차/휴가 관리</h1>
+      <button class="btn outline positive" id="btnExcel">엑셀 다운로드</button>
+    </div>
+
+    <div class="tab-group" style="margin-bottom:20px">
+      <button class="tab">연차 기준 관리</button>
+      <button class="tab">연차 현황</button>
+      <button class="tab active">사용 내역</button>
+    </div>
+
+    <div class="filter-row">
+      <div class="filter-field">
+        <span class="filter-label">사용일</span>
+        <input type="date" id="fStart" value="2026-02-01" />
+      </div>
+      <div class="filter-field">
+        <span class="filter-label">~</span>
+        <input type="date" id="fEnd" value="2026-02-28" />
+      </div>
+      <div class="filter-field">
+        <span class="filter-label">결재 상태</span>
+        <select id="fStatus">
+          <option value="">전체</option>
+          <option value="APPROVED">확정</option>
+          <option value="PENDING">대기중</option>
+          <option value="REJECTED">취소&amp;반려</option>
+        </select>
+      </div>
+      <div class="filter-field">
+        <span class="filter-label">사용 단위</span>
+        <select id="fUnit">
+          <option value="">전체</option>
+          <option value="FULL_DAY">종일</option>
+          <option value="HALF_DAY">반차</option>
+          <option value="QUARTER_DAY">반반차</option>
+          <option value="HOURLY">시간</option>
+        </select>
+      </div>
+      <div class="filter-field locked">
+        <span class="filter-label">신청자</span>
+        <select id="fApplicant">
+          <option value="">전체</option>
+          <option value="SELF">본인 신청</option>
+          <option value="ADMIN_PROXY">관리자 대리</option>
+        </select>
+      </div>
+      <input class="input-pill" id="fQ" placeholder="이름/부서명 검색" style="width:200px" />
+      <button class="btn point" id="btnSearch">검색</button>
+      <button class="btn outline point" id="btnReset">초기화</button>
+    </div>
+
+    <div class="chip-row" id="chipRow"></div>
+
+    <div class="stat-grid" id="statGrid"></div>
+
+    <div class="layout-2col">
+      <aside class="tree-panel">
+        <div class="panel-title">조직도</div>
+        <div class="tree-all" id="treeAll"></div>
+        <div id="treeBody"></div>
+      </aside>
+
+      <section class="table-panel">
+        <div class="list-head">
+          <div class="result" id="resultLabel"></div>
+          <div id="bulkArea"></div>
+        </div>
+
+        <div class="table-wrap scroll">
+          <table class="ybe-table">
+            <thead>
+              <tr>
+                <th style="width:40px"><span class="chk invert" id="chkAll"></span></th>
+                <th>부서명</th>
+                <th class="sortable" data-sort="name">구성원명 <span data-arrow="name"></span></th>
+                <th>직위/직책</th>
+                <th class="sortable" data-sort="date">사용일 <span data-arrow="date"></span></th>
+                <th>연차 유형</th>
+                <th>상세</th>
+                <th>사용 단위</th>
+                <th class="sortable cell-right" data-sort="days">사용 일수 <span data-arrow="days"></span></th>
+                <th>사용 시간</th>
+                <th>결재 상태</th>
+                <th>신청자</th>
+                <th>비고</th>
+              </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+            <tfoot id="tfoot"></tfoot>
+          </table>
+          <div id="emptyState"></div>
+        </div>
+
+        <div class="pagination" id="pagination"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toastRoot"></div>
+
+<script>
+/* ---------------------------------------------------------------------------
+   ADM-LEV 연차/휴가 사용 내역
+   - 공통 컴포넌트(admin/shared/components.css) 클래스만 사용. 화면 전용 스타일 없음.
+   - 결재 상태 배지 매핑: 확정=status-inuse / 대기중=status-scheduled / 취소·반려=status-expired
+--------------------------------------------------------------------------- */
+var PER_PAGE = 20;
+
+var DATA = [
+  { id:'LU-001', dept:'프론트엔드', name:'김민준', pos:'선임', date:'2026-02-17', dateTo:'2026-02-18', category:'기본연차', detail:'기본 연차', unit:'FULL_DAY', days:2, hours:'16시간 0분', status:'APPROVED', applicant:'SELF', remark:'개인 사유', createdAt:'2026-02-10 09:30' },
+  { id:'LU-002', dept:'백엔드', name:'이서윤', pos:'책임', date:'2026-02-14', dateTo:'', category:'기본연차', detail:'기본 연차', unit:'HALF_DAY_AM', days:0.5, hours:'4시간 0분', status:'APPROVED', applicant:'SELF', remark:'오전 병원', createdAt:'2026-02-12 14:20' },
+  { id:'LU-003', dept:'디자인팀', name:'박지호', pos:'사원', date:'2026-02-20', dateTo:'', category:'기본연차', detail:'1년 미만 연차', unit:'FULL_DAY', days:1, hours:'8시간 0분', status:'PENDING', applicant:'SELF', remark:'', createdAt:'2026-02-15 10:00' },
+  { id:'LU-004', dept:'경영지원팀', name:'최수아', pos:'대리', date:'2026-02-12', dateTo:'', category:'기본연차', detail:'기본 연차', unit:'QUARTER_DAY', days:0.25, hours:'2시간 0분', status:'APPROVED', applicant:'SELF', remark:'관공서 방문', createdAt:'2026-02-11 08:45' },
+  { id:'LU-005', dept:'프론트엔드', name:'정예준', pos:'사원', date:'2026-02-19', dateTo:'', category:'기본연차', detail:'비례 연차', unit:'HOURLY', days:0.125, hours:'1시간 0분', status:'APPROVED', applicant:'ADMIN_PROXY', remark:'관리자 대리 신청', createdAt:'2026-02-17 11:00' },
+  { id:'LU-006', dept:'마케팅팀', name:'강하은', pos:'선임', date:'2026-02-10', dateTo:'2026-02-11', category:'기본연차', detail:'기본 연차', unit:'FULL_DAY', days:2, hours:'16시간 0분', status:'APPROVED', applicant:'SELF', remark:'가족 행사', createdAt:'2026-02-05 16:30' },
+  { id:'LU-007', dept:'백엔드', name:'윤도현', pos:'책임', date:'2026-02-25', dateTo:'', category:'이월연차', detail:'이월 연차', unit:'HALF_DAY_PM', days:0.5, hours:'4시간 0분', status:'PENDING', applicant:'SELF', remark:'', createdAt:'2026-02-16 13:15' },
+  { id:'LU-008', dept:'디자인팀', name:'임소율', pos:'대리', date:'2026-02-07', dateTo:'', category:'기본연차', detail:'기본 연차', unit:'FULL_DAY', days:1, hours:'8시간 0분', status:'REJECTED', applicant:'SELF', remark:'프로젝트 일정 충돌', createdAt:'2026-02-03 09:00' },
+  { id:'LU-009', dept:'경영지원팀', name:'한지민', pos:'과장', date:'2026-02-13', dateTo:'', category:'기본연차', detail:'기본 연차', unit:'HALF_DAY_AM', days:0.5, hours:'4시간 0분', status:'APPROVED', applicant:'SELF', remark:'개인 사유', createdAt:'2026-02-10 17:00' },
+  { id:'LU-010', dept:'프론트엔드', name:'오태양', pos:'사원', date:'2026-02-24', dateTo:'2026-02-26', category:'기본연차', detail:'기본 연차', unit:'FULL_DAY', days:3, hours:'24시간 0분', status:'APPROVED', applicant:'SELF', remark:'경조사 (결혼)', createdAt:'2026-02-14 10:30' },
+  { id:'LU-011', dept:'마케팅팀', name:'신유나', pos:'선임', date:'2026-02-21', dateTo:'', category:'기본연차', detail:'기본 연차', unit:'QUARTER_DAY', days:0.25, hours:'2시간 0분', status:'APPROVED', applicant:'SELF', remark:'치과 예약', createdAt:'2026-02-18 08:00' },
+  { id:'LU-012', dept:'백엔드', name:'장현우', pos:'사원', date:'2026-02-28', dateTo:'', category:'기본연차', detail:'당겨쓰기', unit:'HALF_DAY_PM', days:0.5, hours:'4시간 0분', status:'APPROVED', applicant:'SELF', remark:'당겨쓰기 연차', createdAt:'2026-02-20 14:00' }
+];
+
+var DEPTS = [
+  { name:'개발팀', children:['프론트엔드','백엔드'] },
+  { name:'디자인팀', children:['디자인팀'] },
+  { name:'경영지원팀', children:['경영지원팀'] },
+  { name:'마케팅팀', children:['마케팅팀'] }
+];
+
+var UNIT_LABELS = { FULL_DAY:'종일', HALF_DAY_AM:'반차(오전)', HALF_DAY_PM:'반차(오후)', QUARTER_DAY:'반반차', HOURLY:'시간' };
+var STATUS_META = {
+  APPROVED: { cls:'status-inuse',     label:'확정' },
+  PENDING:  { cls:'status-scheduled', label:'대기중' },
+  REJECTED: { cls:'status-expired',   label:'취소&반려' }
+};
+
+var state = {
+  fStart:'2026-02-01', fEnd:'2026-02-28', fStatus:'', fUnit:'', fApplicant:'', fQ:'',
+  openDepts:{ '개발팀':true }, checkedDepts:{}, selected:{},
+  page:1, sortKey:'date', sortDir:'desc', modalId:null
+};
+
+function fmtDays(n) { return n.toFixed(2).replace(/\.?0+$/, ""); }
+function checkedDeptList() { return Object.keys(state.checkedDepts).filter(function (k) { return state.checkedDepts[k]; }); }
+
+function filteredData() {
+  var picked = checkedDeptList();
+  var out = DATA.filter(function (r) {
+    if (state.fStart && r.date < state.fStart) return false;
+    if (state.fEnd && r.date > state.fEnd) return false;
+    if (state.fStatus && r.status !== state.fStatus) return false;
+    if (state.fUnit) {
+      if (state.fUnit === 'HALF_DAY' && r.unit.indexOf('HALF_DAY') !== 0) return false;
+      if (state.fUnit !== 'HALF_DAY' && state.fUnit !== r.unit) return false;
+    }
+    if (state.fApplicant && r.applicant !== state.fApplicant) return false;
+    if (state.fQ && (r.name + r.dept).toLowerCase().indexOf(state.fQ.toLowerCase()) < 0) return false;
+    if (picked.length && picked.indexOf(r.dept) < 0) return false;
+    return true;
+  });
+  var dir = state.sortDir === 'asc' ? 1 : -1;
+  out.sort(function (a, b) {
+    if (state.sortKey === 'days') return (a.days - b.days) * dir;
+    var av = a[state.sortKey], bv = b[state.sortKey];
+    return (av < bv ? -1 : av > bv ? 1 : 0) * dir;
+  });
+  return out;
+}
+
+function render() {
+  var all = filteredData();
+  var pageCount = Math.max(1, Math.ceil(all.length / PER_PAGE));
+  if (state.page > pageCount) state.page = pageCount;
+  var paged = all.slice((state.page - 1) * PER_PAGE, state.page * PER_PAGE);
+
+  renderStats(all);
+  renderChips();
+  renderTree();
+  renderTable(all, paged, pageCount);
+  renderModal();
+}
+
+function renderStats(data) {
+  var cards = [
+    { cls:'', label:'전체 건수', value:data.length, filter:'' },
+    { cls:'inuse', label:'총 사용 일수', value:fmtDays(data.reduce(function (s, r) { return s + r.days; }, 0)), filter:null },
+    { cls:'', label:'확정', value:data.filter(function (r) { return r.status === 'APPROVED'; }).length, filter:'APPROVED' },
+    { cls:'scheduled', label:'대기중', value:data.filter(function (r) { return r.status === 'PENDING'; }).length, filter:'PENDING' },
+    { cls:'expiring', label:'취소·반려', value:data.filter(function (r) { return r.status === 'REJECTED'; }).length, filter:'REJECTED' }
+  ];
+  var grid = document.getElementById('statGrid');
+  grid.style.gridTemplateColumns = 'repeat(5, 1fr)';
+  grid.innerHTML = cards.map(function (c) {
+    return '<div class="stat-card ' + c.cls + '"' + (c.filter === null ? '' : ' data-status-filter="' + c.filter + '"') + '>' +
+      '<div class="label">' + c.label + '</div><div class="value">' + c.value + '</div></div>';
+  }).join('');
+}
+
+function renderChips() {
+  var chips = [];
+  var sel = function (id) { var el = document.getElementById(id); return el.options[el.selectedIndex].text; };
+  if (state.fStatus) chips.push({ key:'fStatus', label:'결재: ' + sel('fStatus') });
+  if (state.fUnit) chips.push({ key:'fUnit', label:'단위: ' + sel('fUnit') });
+  if (state.fApplicant) chips.push({ key:'fApplicant', label:'신청자: ' + sel('fApplicant') });
+  if (state.fQ) chips.push({ key:'fQ', label:'검색: ' + state.fQ });
+  checkedDeptList().forEach(function (d) { chips.push({ key:'dept:' + d, label:'부서: ' + d }); });
+
+  document.getElementById('chipRow').innerHTML = chips.map(function (c) {
+    return '<span class="chip">' + c.label + '<span class="chip-close" data-chip="' + c.key + '">✕</span></span>';
+  }).join('');
+}
+
+function renderTree() {
+  var picked = checkedDeptList();
+  document.getElementById('treeAll').innerHTML =
+    '<span class="chk' + (picked.length ? ' on' : '') + '"></span><span>전체선택</span>' +
+    '<span class="count">' + (picked.length ? picked.length + '개 부서' : '전체') + '</span>';
+
+  document.getElementById('treeBody').innerHTML = DEPTS.map(function (dep) {
+    var open = !!state.openDepts[dep.name];
+    var isLeaf = dep.children.length === 1 && dep.children[0] === dep.name;
+    if (isLeaf) {
+      return '<div class="member" data-dept-check="' + dep.name + '" style="padding-left:0">' +
+        '<span class="chk light' + (state.checkedDepts[dep.name] ? ' on' : '') + '"></span><span>' + dep.name + '</span></div>';
+    }
+    return '<div>' +
+      '<div class="dept" data-dept-toggle="' + dep.name + '">' +
+        '<span class="caret">' + (open ? '▾' : '▸') + '</span><span>' + dep.name + '</span>' +
+        '<span class="num">(' + dep.children.length + ')</span></div>' +
+      (open ? dep.children.map(function (c) {
+        return '<div class="member" data-dept-check="' + c + '">' +
+          '<span class="chk light' + (state.checkedDepts[c] ? ' on' : '') + '"></span><span>' + c + '</span></div>';
+      }).join('') : '') +
+    '</div>';
+  }).join('');
+}
+
+function renderTable(all, paged, pageCount) {
+  document.getElementById('resultLabel').textContent =
+    '총 ' + all.length + '건 · ' + state.page + '/' + pageCount + ' 페이지';
+
+  var selIds = Object.keys(state.selected).filter(function (k) { return state.selected[k]; });
+  document.getElementById('bulkArea').innerHTML = selIds.length
+    ? '<div class="bulk-actions"><span class="count">' + selIds.length + '건 선택</span>' +
+      '<button class="btn small outline positive" id="btnExcelSel">선택 건 엑셀 다운로드</button></div>'
+    : '';
+
+  var allOn = paged.length > 0 && paged.every(function (r) { return state.selected[r.id]; });
+  document.getElementById('chkAll').className = 'chk invert' + (allOn ? ' on' : '');
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-arrow]'), function (el) {
+    var key = el.getAttribute('data-arrow');
+    el.textContent = state.sortKey === key ? (state.sortDir === 'desc' ? '▾' : '▴') : '';
+  });
+
+  document.getElementById('tbody').innerHTML = paged.map(function (r) {
+    var st = STATUS_META[r.status];
+    var dateText = r.dateTo ? r.date + ' ~ ' + r.dateTo : r.date;
+    return '<tr>' +
+      '<td><span class="chk' + (state.selected[r.id] ? ' on' : '') + '" data-select="' + r.id + '"></span></td>' +
+      '<td>' + r.dept + '</td>' +
+      '<td><div class="member-cell"><span class="avatar">' + r.name.charAt(0) + '</span>' +
+        '<span class="name" data-detail="' + r.id + '">' + r.name + '</span>' +
+        (r.applicant === 'ADMIN_PROXY' ? '<span class="badge cyan">대리</span>' : '') + '</div></td>' +
+      '<td>' + r.pos + '</td>' +
+      '<td style="white-space:nowrap">' + dateText + '</td>' +
+      '<td>' + r.category + '</td>' +
+      '<td>' + r.detail + '</td>' +
+      '<td><span class="badge cyan">' + UNIT_LABELS[r.unit] + '</span></td>' +
+      '<td class="cell-right">' + fmtDays(r.days) + '</td>' +
+      '<td style="white-space:nowrap">' + r.hours + '</td>' +
+      '<td><span class="badge ' + st.cls + '">' + st.label + '</span></td>' +
+      '<td>' + (r.applicant === 'SELF' ? '본인' : '관리자') + '</td>' +
+      '<td class="cell-ellipsis" title="' + r.remark + '">' + (r.remark || '-') + '</td>' +
+    '</tr>';
+  }).join('');
+
+  document.getElementById('tfoot').innerHTML = all.length
+    ? '<tr><td colspan="8" style="text-align:right">합계</td>' +
+      '<td class="cell-right">' + fmtDays(all.reduce(function (s, r) { return s + r.days; }, 0)) + '</td>' +
+      '<td colspan="4"></td></tr>'
+    : '';
+
+  document.getElementById('emptyState').innerHTML = all.length ? '' :
+    '<div class="empty-state"><div class="icon">🗒</div><div>조회 결과가 없습니다. 필터 조건을 변경하거나 초기화해 주세요.</div></div>';
+
+  var pages = [];
+  for (var i = 1; i <= pageCount; i++) {
+    pages.push('<div class="page' + (i === state.page ? ' active' : '') + '" data-page="' + i + '">' + i + '</div>');
+  }
+  document.getElementById('pagination').innerHTML = all.length ? pages.join('') : '';
+}
+
+function renderModal() {
+  var root = document.getElementById('modalRoot');
+  if (!state.modalId) { root.innerHTML = ''; return; }
+  var r = DATA.filter(function (x) { return x.id === state.modalId; })[0];
+  var st = STATUS_META[r.status];
+  var dateText = r.dateTo ? r.date + ' ~ ' + r.dateTo : r.date;
+  var day = r.createdAt.split(' ')[0];
+
+  var steps = '<div class="timeline-item"><div class="timeline-dot">1</div><div>' +
+    '<div class="timeline-text"><b>' + r.name + '</b>님이 연차를 신청했습니다.</div>' +
+    '<div class="timeline-time">' + r.createdAt + '</div></div></div>';
+  if (r.status === 'APPROVED') {
+    steps += '<div class="timeline-item"><div class="timeline-dot">2</div><div>' +
+      '<div class="timeline-text"><b>팀장</b>이 결재를 승인했습니다.</div>' +
+      '<div class="timeline-time">' + day + ' 18:00</div></div></div>';
+  }
+  if (r.status === 'REJECTED') {
+    steps += '<div class="timeline-item"><div class="timeline-dot">2</div><div>' +
+      '<div class="timeline-text"><b>팀장</b>이 결재를 반려했습니다. ' +
+      '<span class="helper warn">사유: ' + r.remark + '</span></div>' +
+      '<div class="timeline-time">' + day + ' 17:30</div></div></div>';
+  }
+
+  root.innerHTML =
+  '<div class="modal-overlay" data-close-modal="1"><div class="modal mid" style="width:640px">' +
+    '<div class="modal-header"><h2>사용 내역 상세</h2>' +
+      '<button class="modal-close" data-close-modal="1">✕</button></div>' +
+    '<div class="detail-grid">' +
+      '<div class="detail-item"><span class="detail-label">구성원</span><span class="detail-value">' + r.name + ' (' + r.pos + ')</span></div>' +
+      '<div class="detail-item"><span class="detail-label">부서</span><span class="detail-value">' + r.dept + '</span></div>' +
+      '<div class="detail-item"><span class="detail-label">사용일</span><span class="detail-value">' + dateText + '</span></div>' +
+      '<div class="detail-item"><span class="detail-label">연차 유형</span><span class="detail-value">' + r.category + '</span></div>' +
+      '<div class="detail-divider"></div>' +
+      '<div class="detail-item"><span class="detail-label">상세</span><span class="detail-value">' + r.detail + '</span></div>' +
+      '<div class="detail-item"><span class="detail-label">사용 단위</span><span class="detail-value"><span class="badge cyan">' + UNIT_LABELS[r.unit] + '</span></span></div>' +
+      '<div class="detail-item"><span class="detail-label">사용 일수</span><span class="detail-value">' + fmtDays(r.days) + '일</span></div>' +
+      '<div class="detail-item"><span class="detail-label">사용 시간</span><span class="detail-value">' + r.hours + '</span></div>' +
+      '<div class="detail-divider"></div>' +
+      '<div class="detail-item"><span class="detail-label">결재 상태</span><span class="detail-value"><span class="badge ' + st.cls + '">' + st.label + '</span></span></div>' +
+      '<div class="detail-item"><span class="detail-label">신청자</span><span class="detail-value">' + (r.applicant === 'SELF' ? '본인 신청' : '관리자 대리 신청') + '</span></div>' +
+      '<div class="detail-item full"><span class="detail-label">비고</span><span class="detail-value">' + (r.remark || '-') + '</span></div>' +
+    '</div>' +
+    '<div class="timeline"><div class="timeline-title">결재 이력</div>' + steps + '</div>' +
+    '<div class="modal-footer"><button class="btn outline point" data-close-modal="1">닫기</button></div>' +
+  '</div></div>';
+}
+
+var toastTimer = null;
+function showToast(text) {
+  clearTimeout(toastTimer);
+  document.getElementById('toastRoot').innerHTML = '<div class="toast">' + text + '</div>';
+  toastTimer = setTimeout(function () { document.getElementById('toastRoot').innerHTML = ''; }, 2600);
+}
+
+/* ---------- 이벤트 ---------- */
+['fStart','fEnd','fStatus','fUnit','fApplicant'].forEach(function (id) {
+  document.getElementById(id).onchange = function (e) { state[id] = e.target.value; state.page = 1; render(); };
+});
+document.getElementById('btnSearch').onclick = function () {
+  state.fQ = document.getElementById('fQ').value; state.page = 1; render();
+};
+document.getElementById('btnReset').onclick = function () {
+  state.fStart = '2026-02-01'; state.fEnd = '2026-02-28';
+  state.fStatus = ''; state.fUnit = ''; state.fApplicant = ''; state.fQ = '';
+  state.checkedDepts = {}; state.selected = {}; state.page = 1;
+  document.getElementById('fStart').value = state.fStart;
+  document.getElementById('fEnd').value = state.fEnd;
+  document.getElementById('fStatus').value = '';
+  document.getElementById('fUnit').value = '';
+  document.getElementById('fApplicant').value = '';
+  document.getElementById('fQ').value = '';
+  render();
+};
+document.getElementById('btnExcel').onclick = function () { showToast('조회된 ' + filteredData().length + '건을 엑셀로 내려받습니다.'); };
+document.getElementById('chkAll').onclick = function () {
+  var all = filteredData();
+  var paged = all.slice((state.page - 1) * PER_PAGE, state.page * PER_PAGE);
+  var on = !(paged.length > 0 && paged.every(function (r) { return state.selected[r.id]; }));
+  paged.forEach(function (r) { state.selected[r.id] = on; });
+  render();
+};
+Array.prototype.forEach.call(document.querySelectorAll('th.sortable'), function (th) {
+  th.onclick = function () {
+    var key = th.getAttribute('data-sort');
+    state.sortDir = (state.sortKey === key && state.sortDir === 'desc') ? 'asc' : 'desc';
+    state.sortKey = key;
+    render();
+  };
+});
+
+document.addEventListener('click', function (e) {
+  var hit = function (attr) { var el = e.target.closest('[' + attr + ']'); return el && el.getAttribute(attr); };
+
+  var statFilter = hit('data-status-filter');
+  if (statFilter !== null && statFilter !== undefined) {
+    state.fStatus = statFilter; document.getElementById('fStatus').value = statFilter;
+    state.page = 1; return render();
+  }
+
+  var chip = hit('data-chip');
+  if (chip) {
+    if (chip.indexOf('dept:') === 0) { state.checkedDepts[chip.slice(5)] = false; }
+    else { state[chip] = ''; var el = document.getElementById(chip); if (el) el.value = ''; }
+    state.page = 1; return render();
+  }
+
+  var deptToggle = hit('data-dept-toggle');
+  if (deptToggle) { state.openDepts[deptToggle] = !state.openDepts[deptToggle]; return render(); }
+
+  var deptCheck = hit('data-dept-check');
+  if (deptCheck) { state.checkedDepts[deptCheck] = !state.checkedDepts[deptCheck]; state.page = 1; return render(); }
+
+  if (e.target.closest('#treeAll')) {
+    state.checkedDepts = {}; state.page = 1; return render();
+  }
+
+  var sel = hit('data-select');
+  if (sel) { state.selected[sel] = !state.selected[sel]; return render(); }
+
+  var page = hit('data-page');
+  if (page) { state.page = Number(page); return render(); }
+
+  var detail = hit('data-detail');
+  if (detail) { state.modalId = detail; return render(); }
+
+  if (hit('data-close-modal')) { state.modalId = null; return render(); }
+
+  if (e.target.id === 'btnExcelSel') {
+    var n = Object.keys(state.selected).filter(function (k) { return state.selected[k]; }).length;
+    return showToast('선택한 ' + n + '건을 엑셀로 내려받습니다.');
+  }
+});
+
+render();
+</script>
+
+</body>
+</html>
