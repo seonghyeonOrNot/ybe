@@ -10,40 +10,110 @@
   .hub-header { background: var(--color-sidebar-bg); color:#fff; padding: 32px 40px; }
   .hub-header h1 { margin:0; font-size: var(--font-display-size); font-weight: var(--font-display-weight); }
   .hub-header p { margin:8px 0 0; color: #C7CCE8; font-size: var(--font-body-size); }
-  .hub-main { padding: 32px 40px; }
-  .section-title { font-size: var(--font-section-size); font-weight: var(--font-section-weight); margin: 32px 0 16px; color: var(--color-primary); }
-  .section-title:first-child { margin-top:0; }
-  .group-label { font-weight:700; margin-bottom:10px; color:var(--color-text-muted); font-size: var(--font-body-size); }
-  .card-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:16px; margin-bottom:24px; }
-  .card { display:block; background: var(--color-surface); border-radius: var(--radius-card); padding: 20px; text-decoration:none; color: var(--color-text); box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform .15s ease, box-shadow .15s ease; }
-  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-floating); }
-  .card h3 { margin:0 0 8px; font-size: var(--font-title-size); font-weight: var(--font-title-weight); }
-  .card .meta { font-size: var(--font-caption-size); color: var(--color-text-muted); }
-  .badge-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background: var(--color-secondary); margin-right:6px; }
+  .hub-meta { margin-top:14px; font-size: var(--font-caption-size); color:#9FA8D9; }
+  .hub-main { padding: 32px 40px 60px; max-width: 1200px; margin: 0 auto; }
+  .group-title { font-size: var(--font-section-size); font-weight: var(--font-section-weight); color: var(--color-primary); margin: 40px 0 16px; padding-bottom:8px; border-bottom: 2px solid var(--color-primary); }
+  .group-title:first-of-type { margin-top:0; }
+  .feature-block { margin-bottom: 28px; }
+  .feature-label { font-weight:700; font-size: var(--font-body-size); color: var(--color-text-muted); margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+  .feature-label .count { background:#E5E7EF; color:var(--color-text-muted); border-radius: var(--radius-pill); padding:1px 9px; font-size: var(--font-caption-size); font-weight:700; }
+  .card-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:16px; }
+  .card { display:flex; flex-direction:column; gap:10px; background: var(--color-surface); border-radius: var(--radius-card); padding: 20px; text-decoration:none; color: var(--color-text); box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform .15s ease, box-shadow .15s ease; }
+  .card:hover { transform: translateY(-3px); box-shadow: var(--shadow-floating); }
+  .card-top { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .card h3 { margin:0; font-size: var(--font-title-size); font-weight: var(--font-title-weight); }
+  .card .desc { margin:0; font-size: var(--font-caption-size); color: var(--color-text-muted); line-height:1.5; flex:1; }
+  .card-footer { display:flex; justify-content:space-between; align-items:center; font-size: var(--font-caption-size); color: var(--color-text-faint); margin-top:4px; }
   .empty-note { color: var(--color-text-faint); font-size: var(--font-body-size); padding: 20px; background: var(--color-surface); border-radius: var(--radius-card); }
 </style>
 </head>
 <body>
   <div class="hub-header">
     <h1>Y-BE Prototype</h1>
-    <p>기획 프로토타입 모음 · 마지막 업데이트 2026.08.23</p>
+    <p>기획 프로토타입 모음 — 화면을 클릭하면 바로 이동합니다.</p>
+    <div class="hub-meta" id="hubMeta"></div>
   </div>
-  <div class="hub-main">
-    <div class="section-title">ADMIN</div>
-    <div class="group-label">휴가</div>
-    <div class="card-grid">
-      <a class="card" href="admin/leave/index.html">
-        <h3>휴가 대상자 관리</h3>
-        <div class="meta"><span class="badge-dot"></span>Admin · 검토중 · 2026.08.23</div>
-      </a>
-      <a class="card" href="admin/leave/usage-history.html">
-        <h3>연차/휴가 사용 내역</h3>
-        <div class="meta"><span class="badge-dot"></span>Admin · 검토중 · 2026.08.23</div>
-      </a>
-    </div>
+  <div class="hub-main" id="hubMain"></div>
 
-    <div class="section-title">STAFF</div>
-    <div class="empty-note">아직 등록된 화면이 없습니다. 화면이 추가되면 이 영역에 표시됩니다.</div>
-  </div>
+  <script>
+    // 화면이 추가되거나 이동되면 이 배열만 수정하면 됩니다.
+    const screens = [
+      {
+        group: "ADMIN",
+        feature: "Leave",
+        name: "휴가 대상자 관리",
+        description: "휴가 대상자를 등록하고 부여 방식·적용 기간·사용 조건을 관리합니다.",
+        status: "review", // draft | review | complete
+        updated: "2026-08-23",
+        href: "admin/leave/"
+      },
+      {
+        group: "ADMIN",
+        feature: "Leave",
+        name: "연차/휴가 사용 내역",
+        description: "구성원별 연차·휴가 사용 내역과 잔여 현황을 조회합니다.",
+        status: "review",
+        updated: "2026-08-23",
+        href: "admin/leave/usage-history.html"
+      }
+    ];
+
+    const GROUPS = ["ADMIN", "STAFF"];
+    const statusMeta = {
+      draft:    { label: "Draft",    cls: "status-scheduled" },
+      review:   { label: "Review",   cls: "status-inuse" },
+      complete: { label: "Complete", cls: "status-done" }
+    };
+
+    const main = document.getElementById("hubMain");
+
+    GROUPS.forEach(function(group) {
+      const groupScreens = screens.filter(function(s) { return s.group === group; });
+      const section = document.createElement("div");
+      const title = document.createElement("div");
+      title.className = "group-title";
+      title.textContent = group;
+      section.appendChild(title);
+
+      if (groupScreens.length === 0) {
+        const note = document.createElement("div");
+        note.className = "empty-note";
+        note.textContent = "아직 등록된 화면이 없습니다. 화면이 추가되면 이 영역에 표시됩니다.";
+        section.appendChild(note);
+        main.appendChild(section);
+        return;
+      }
+
+      const features = Array.from(new Set(groupScreens.map(function(s) { return s.feature; })));
+      features.forEach(function(feature) {
+        const items = groupScreens.filter(function(s) { return s.feature === feature; });
+        const block = document.createElement("div");
+        block.className = "feature-block";
+        block.innerHTML =
+          '<div class="feature-label">' + feature + ' <span class="count">' + items.length + '</span></div>' +
+          '<div class="card-grid">' +
+          items.map(function(s) {
+            const st = statusMeta[s.status] || statusMeta.draft;
+            return '' +
+              '<a class="card" href="' + s.href + '">' +
+                '<div class="card-top">' +
+                  '<h3>' + s.name + '</h3>' +
+                  '<span class="badge ' + st.cls + '">' + st.label + '</span>' +
+                '</div>' +
+                '<p class="desc">' + s.description + '</p>' +
+                '<div class="card-footer"><span>최종 수정</span><span>' + s.updated + '</span></div>' +
+              '</a>';
+          }).join('') +
+          '</div>';
+        section.appendChild(block);
+      });
+      main.appendChild(section);
+    });
+
+    let latest = "2000-01-01";
+    screens.forEach(function(s) { if (s.updated > latest) latest = s.updated; });
+    document.getElementById("hubMeta").textContent =
+      "전체 화면 " + screens.length + "개 · 마지막 업데이트 " + latest;
+  </script>
 </body>
 </html>
