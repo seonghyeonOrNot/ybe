@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Y-BE Prototype Hub</title>
+<link rel="stylesheet" href="admin/shared/components.css" />
+<style>
+  body { margin:0; background: var(--color-content-bg); font-family: var(--font-family); color: var(--color-text); }
+  .hub-header { background: var(--color-sidebar-bg); color:#fff; padding: 32px 40px; }
+  .hub-header h1 { margin:0; font-size: var(--font-display-size); font-weight: var(--font-display-weight); }
+  .hub-header p { margin:8px 0 0; color: #C7CCE8; font-size: var(--font-body-size); }
+  .hub-main { padding: 32px 40px; }
+  .section-title { font-size: var(--font-section-size); font-weight: var(--font-section-weight); margin: 32px 0 16px; color: var(--color-primary); }
+  .section-title:first-child { margin-top:0; }
+  .group-label { font-weight:700; margin-bottom:10px; color:var(--color-text-muted); font-size: var(--font-body-size); }
+  .card-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(240px,1fr)); gap:16px; margin-bottom:24px; }
+  .card { display:block; background: var(--color-surface); border-radius: var(--radius-card); padding: 20px; text-decoration:none; color: var(--color-text); box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform .15s ease, box-shadow .15s ease; }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-floating); }
+  .card h3 { margin:0 0 8px; font-size: var(--font-title-size); font-weight: var(--font-title-weight); }
+  .card .meta { font-size: var(--font-caption-size); color: var(--color-text-muted); }
+  .badge-dot { display:inline-block; width:8px; height:8px; border-radius:50%; background: var(--color-secondary); margin-right:6px; }
+  .empty-note { color: var(--color-text-faint); font-size: var(--font-body-size); padding: 20px; background: var(--color-surface); border-radius: var(--radius-card); }
+</style>
+</head>
+<body>
+  <div class="hub-header">
+    <h1>Y-BE Prototype</h1>
+    <p>기획 프로토타입 모음 · 마지막 업데이트 2026.08.23</p>
+  </div>
+  <div class="hub-main">
+    <div class="section-title">ADMIN</div>
+    <div class="group-label">휴가</div>
+    <div class="card-grid">
+      <a class="card" href="admin/leave/index.html">
+        <h3>휴가 대상자 관리</h3>
+        <div class="meta"><span class="badge-dot"></span>Admin · 검토중 · 2026.08.23</div>
+      </a>
+      <a class="card" href="admin/leave/usage-history.html">
+        <h3>연차/휴가 사용 내역</h3>
+        <div class="meta"><span class="badge-dot"></span>Admin · 검토중 · 2026.08.23</div>
+      </a>
+    </div>
+
+    <div class="section-title">STAFF</div>
+    <div class="empty-note">아직 등록된 화면이 없습니다. 화면이 추가되면 이 영역에 표시됩니다.</div>
+  </div>
+</body>
+</html>
