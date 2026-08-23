@@ -1,0 +1,82 @@
+/*
+  y-BE Admin — Design Tokens
+  ybe-admin-design-system 스킬 기준. 컬러는 테마 스위칭 대상이므로
+  하드코딩 대신 이 변수만 참조할 것 (컬러테마 설정 페이지에서 매핑 교체 가능).
+*/
+
+:root {
+  /* Color — Brand (Navy 3-tier) */
+  --color-sidebar-bg: #1B164D;
+  --color-table-header-bg: #2A2873;
+  --color-primary: #312E98;
+
+  /* Color — Accent (Blue 2-tier) */
+  --color-secondary: #3371FF;
+  --color-tab-active: #2285F1;
+  --color-header-bg: #3894E9;
+
+  /* Color — Dark accent */
+  --color-dark: #12114E;
+
+  /* Color — Status / Info */
+  --color-info-text: #009DDF;
+  --color-info-bg: #EDF6FF;
+  --color-info-border: #A0CCF8;
+  --color-badge-cyan-text: #00AAEE;
+  --color-badge-cyan-bg: #D9F2FC;
+  --color-warn-text: #F957C6;
+
+  /* Color — Neutral */
+  --color-content-bg: #EFF1F7;
+  --color-surface: #FFFFFF;
+  --color-text: #333333;
+  --color-text-muted: #808CAF;
+  --color-text-faint: #999999;
+  --color-border-input: #CCCCCC;
+  --color-field-locked: #9EADCC;
+  --color-pagination-inactive: #8D9DC4;
+
+  /* Typography */
+  --font-family: "Gmarket Sans", "Montserrat", sans-serif;
+  --font-display-size: 30px;
+  --font-display-weight: 800;
+  --font-section-size: 20px;
+  --font-section-weight: 800;
+  --font-title-size: 19px;
+  --font-title-weight: 700;
+  --font-title-inactive-size: 18px;
+  --font-title-inactive-weight: 600;
+  --font-sidebar-size: 17px;
+  --font-body-lg-size: 16px;
+  --font-body-lg-weight: 600;
+  --font-body-size: 14px;
+  --font-body-weight: 600;
+  --font-caption-size: 13px;
+  --font-caption-weight: 600;
+
+  /* Radius */
+  --radius-pill: 126px;
+  --radius-sharp: 0;
+  --radius-card: 16px;
+  --radius-dropdown: 10px;
+  --radius-modal: 26px;
+  --radius-tab-active: 16px 16px 0 0;
+  /* 필터 라벨-필드 결합형 비대칭 radius */
+  --radius-filter-label: 30px 10px 33px 30px;
+
+  /* Shadow */
+  --shadow-floating: 7px 6px 15px -3px rgba(0, 0, 0, 0.4);
+  /* Stepped Shadow Header — y-BE 고유 시그니처, 연차설정/컬러테마 설정 섹션 헤더 전용 */
+  --shadow-stepped:
+    1px 1px 0 #8FBFF9,
+    2px 2px 0 #8FBFF9,
+    3px 3px 0 #8FBFF9,
+    4px 4px 0 #8FBFF9,
+    5px 5px 0 #8FBFF9,
+    6px 6px 0 #8FBFF9,
+    7px 7px 0 #8FBFF9;
+
+  /* Modal size variants */
+  --modal-mid-width: 1200px;   /* Admin — 등록/수정/이력조회 */
+  --modal-wide-width: 1000px;  /* Staff — 휴가 선택 등 */
+}

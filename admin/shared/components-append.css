@@ -1,0 +1,72 @@
+/* ==========================================================================
+   admin/shared/components.css 파일 맨 끝에 이 블록을 붙여넣으세요.
+   (ADM-LEV 연차/휴가 사용 내역 화면에서 추가로 필요한 공통 규칙 —
+    새 색상값 없이 tokens.css 변수만 사용)
+   ========================================================================== */
+
+/* ---------- 테이블 합계 행 ---------- */
+table.ybe-table tfoot td {
+  background: #F1F4FF;
+  font-weight: 800;
+  border-top: 2px solid #E7E9F2;
+  padding: 14px 12px;
+  text-align: center;
+}
+table.ybe-table td.cell-right,
+table.ybe-table th.cell-right { text-align: right; }
+table.ybe-table td.cell-ellipsis {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- 제거 가능한 필터 칩 ---------- */
+.chip .chip-close {
+  cursor: pointer;
+  width: 14px; height: 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  font-size: 10px;
+}
+.chip .chip-close:hover { background: rgba(0, 170, 238, 0.2); }
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+
+/* ---------- 구성원 셀 (아바타 + 이름) ---------- */
+.member-cell { display: flex; align-items: center; gap: 8px; justify-content: center; }
+.member-cell .avatar {
+  width: 28px; height: 28px; flex-shrink: 0;
+  border-radius: 50%;
+  background: #E5E7EF;
+  color: var(--color-text-muted);
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--font-caption-size); font-weight: 800;
+}
+.member-cell .name { font-weight: 800; cursor: pointer; }
+.member-cell .name:hover { color: var(--color-secondary); text-decoration: underline; }
+
+/* ---------- 상세 모달 (라벨-값 그리드 + 결재 이력 타임라인) ---------- */
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.detail-grid .detail-item { display: flex; flex-direction: column; gap: 4px; }
+.detail-grid .detail-item.full { grid-column: 1 / -1; }
+.detail-grid .detail-label { font-size: var(--font-caption-size); color: var(--color-text-muted); }
+.detail-grid .detail-value { font-size: var(--font-body-size); font-weight: var(--font-body-weight); }
+.detail-grid .detail-divider { grid-column: 1 / -1; border-top: 1px solid #E7E9F2; }
+
+.timeline { margin-top: 24px; }
+.timeline .timeline-title { font-size: var(--font-body-lg-size); font-weight: 800; margin-bottom: 12px; }
+.timeline .timeline-item { display: flex; gap: 12px; padding-bottom: 16px; position: relative; }
+.timeline .timeline-item:not(:last-child)::before {
+  content: ""; position: absolute; left: 11px; top: 26px; bottom: 0;
+  width: 1px; background: #E7E9F2;
+}
+.timeline .timeline-dot {
+  width: 24px; height: 24px; flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+  display: flex; align-items: center; justify-content: center;
+  font-size: var(--font-caption-size); font-weight: 800;
+}
+.timeline .timeline-text { font-size: var(--font-body-size); }
+.timeline .timeline-time { font-size: var(--font-caption-size); color: var(--color-text-faint); margin-top: 2px; }
