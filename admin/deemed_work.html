@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>간주근로 사용 설정 — y-BE Admin</title>
+<link rel="stylesheet" href="../shared/components.css" />
+<style>
+  /* 페이지 전용 규칙 — 새 색상값 없이 tokens.css 변수만 사용 */
+  .setting-card { max-width: 900px; background: var(--color-surface); border-radius: var(--radius-card); overflow: hidden; }
+  .setting-card .card-head { background: var(--color-primary); color: #fff; padding: 15px 24px; font-size: var(--font-title-size); font-weight: var(--font-title-weight); }
+  .setting-card .card-body { padding: 22px 24px 26px; }
+  .setting-card table.ybe-table { min-width: 0; }
+  .notice-banner.stack { flex-direction: column; gap: 8px; margin-bottom: 24px; }
+  .notice-banner.stack .line { display: flex; gap: 9px; align-items: flex-start; }
+  .setting-row { display: flex; align-items: flex-start; gap: 40px; margin-bottom: 22px; }
+  .setting-row .key { width: 100px; flex-shrink: 0; font-size: var(--font-body-size); font-weight: 800; color: var(--color-primary); }
+  .setting-row .key.pad { padding-top: 14px; }
+  .type-table-wrap { flex: 1; border: 1px solid #E7E9F2; }
+  .icon-btn { border: none; background: none; cursor: pointer; font-size: 16px; color: var(--color-text-muted); }
+  .card-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 26px; }
+  .card-actions .right { display: flex; gap: 10px; }
+
+  .modal-overlay[hidden] { display: none; }
+  .btn { white-space: nowrap; }
+
+  /* 대상자 설정 모달 */
+  .target-modal { width: var(--modal-mid-width); max-width: 92vw; background: #FEFEFE; border-radius: var(--radius-modal); padding: 30px 34px 26px; }
+  .target-cols { display: grid; grid-template-columns: 1fr 1.35fr; gap: 24px; height: 470px; }
+  .panel { display: flex; flex-direction: column; min-height: 0; }
+  .panel .panel-tab { align-self: flex-start; background: var(--color-tab-active); color: #fff; font-size: var(--font-caption-size); font-weight: var(--font-title-weight); padding: 9px 26px; border-radius: var(--radius-tab-active); }
+  .panel .panel-body { flex: 1; min-height: 0; border: 1px solid #E7E9F2; border-radius: 0 var(--radius-dropdown) var(--radius-dropdown) var(--radius-dropdown); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .panel .scroll-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+  .search-line { display: flex; gap: 8px; }
+  .search-line .input-pill { flex: 1; }
+  .tree-row { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: var(--font-body-size); font-weight: var(--font-body-weight); }
+  .tree-row.dept { font-weight: 800; }
+  .tree-row.member { padding-left: 20px; color: var(--color-text-muted); }
+  .tree-row.member.on { color: var(--color-text); }
+  .target-row { display: grid; grid-template-columns: 22px 58px 82px 1fr 22px; align-items: center; gap: 8px; background: #F7F9FE; border: 1px solid #E7E9F2; padding: 9px 10px; }
+  .target-row .no { font-size: var(--font-caption-size); color: var(--color-text-muted); text-align: center; font-weight: 800; }
+  .target-row .nm { font-weight: 800; font-size: var(--font-body-size); }
+  .target-row .rk { font-size: var(--font-caption-size); color: var(--color-text-muted); }
+  .period-field { display: flex; align-items: center; gap: 6px; background: #fff; border: 1px solid var(--color-border-input); border-radius: var(--radius-pill); height: 32px; padding: 0 12px; }
+  .period-field input { border: none; outline: none; background: none; font-family: var(--font-family); font-size: 12px; font-weight: 600; color: var(--color-text); min-width: 0; flex: 1; }
+  .list-meta { display: flex; justify-content: space-between; align-items: center; font-size: var(--font-caption-size); }
+  .period-notice { background: var(--color-info-bg); border: 1px solid var(--color-info-border); border-radius: var(--radius-dropdown); padding: 14px 16px; }
+  .period-notice .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 800; color: var(--color-primary); font-size: var(--font-caption-size); }
+  .period-notice li { font-size: 12px; line-height: 1.6; }
+  .period-notice ul { margin: 0; padding-left: 18px; }
+
+  /* 상세 설정 모달 */
+  .detail-modal { width: var(--modal-wide-width); max-width: 92vw; height: 640px; max-height: 92vh; background: #FEFEFE; border-radius: var(--radius-modal); overflow: hidden; display: flex; flex-direction: column; }
+  .detail-modal .head { flex: none; background: var(--color-primary); color: #fff; padding: 15px 26px; display: flex; justify-content: space-between; align-items: center; font-size: var(--font-title-size); font-weight: var(--font-title-weight); }
+  .detail-modal .head .modal-close { color: #fff; }
+  .detail-modal .body { display: flex; flex: 1; min-height: 0; }
+  .type-nav { width: 152px; flex: none; border-right: 1px solid #E7E9F2; padding: 16px 0; }
+  .type-nav .item { display: flex; justify-content: space-between; align-items: center; padding: 11px 18px; cursor: pointer; border-left: 3px solid transparent; font-size: var(--font-body-size); font-weight: 800; }
+  .type-nav .item.on { background: #F1F4FF; border-left-color: var(--color-primary); color: var(--color-primary); }
+  .type-nav .item .state { font-size: 11.5px; font-weight: 600; color: var(--color-text-muted); }
+  .type-nav .item .state.use { color: var(--color-secondary); }
+  .detail-main { flex: 1; min-width: 0; padding: 22px 26px 20px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; }
+  .use-toggle { display: flex; align-items: center; gap: 14px; border: 1px solid #E7E9F2; border-radius: var(--radius-pill); padding: 8px 18px; cursor: pointer; font-size: var(--font-body-size); font-weight: 800; }
+  .use-toggle .track { width: 42px; height: 23px; border-radius: var(--radius-pill); background: #C7CEE3; padding: 3px; display: flex; justify-content: flex-start; }
+  .use-toggle.on .track { background: var(--color-secondary); justify-content: flex-end; }
+  .use-toggle .knob { width: 17px; height: 17px; border-radius: 50%; background: #fff; }
+  .segment { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--color-info-border); border-radius: 6px; overflow: hidden; }
+  .segment .seg { text-align: center; padding: 11px 0; font-size: var(--font-body-size); font-weight: 800; color: var(--color-text-muted); background: #fff; cursor: pointer; }
+  .segment .seg.on { background: #E8EFFF; color: var(--color-primary); }
+  .option-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 6px; }
+  .option-row { border: 1px solid #E7E9F2; border-radius: var(--radius-dropdown); padding: 10px 12px; background: #FBFCFF; }
+  .option-row .line { display: grid; grid-template-columns: 20px 132px 1fr 22px; align-items: center; gap: 10px; }
+  .option-row .caret { cursor: pointer; font-size: 11px; color: var(--color-text-muted); text-align: center; }
+  .option-row select, .option-row .num-sel { border: 1px solid var(--color-field-locked); border-radius: 6px; height: 34px; padding: 0 9px; background: #fff; font-family: var(--font-family); font-size: var(--font-body-size); font-weight: 600; color: var(--color-text); }
+  .option-row .fields { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; font-size: var(--font-body-size); font-weight: 600; }
+  .option-row .memo { margin: 10px 0 2px 30px; }
+  .option-row .memo input { width: 100%; height: 34px; border: 1px solid #E7E9F2; border-radius: 6px; padding: 0 13px; font-family: var(--font-family); font-size: 12.5px; font-weight: 600; outline: none; }
+  .add-option { border: 1px dashed var(--color-info-border); background: #F4F7FF; border-radius: var(--radius-dropdown); text-align: center; padding: 11px 0; font-size: var(--font-body-size); font-weight: 800; color: var(--color-secondary); cursor: pointer; }
+  .detail-modal .foot { flex: none; border-top: 1px solid #E7E9F2; padding: 14px 26px; display: flex; justify-content: flex-end; gap: 10px; }
+</style>
+</head>
+<body>
+  <div class="gnb">
+    <div class="gnb-left"><span class="logo">y-BE</span><span>관리자페이지</span></div>
+    <div class="gnb-right"><span class="company">Y-BE COMPANY | 관리자(ybe)</span><button class="btn point small">로그아웃</button></div>
+  </div>
+
+  <div class="app-shell">
+    <nav class="lnb">
+      <div class="menu-item">근로 시간 현황</div>
+      <div class="menu-item">업무평가 관리</div>
+      <div class="menu-item">전자계약 관리</div>
+      <div class="menu-item">급여/정산 관리</div>
+      <div class="menu-item">전자결재 관리</div>
+      <div class="menu-item">조직 관리</div>
+      <div class="menu-item">연차/휴가 관리</div>
+      <div class="menu-item">게시판 관리</div>
+      <div class="menu-item on active">설정</div>
+      <div class="sub-item active">간주근로</div>
+      <div class="sub-item">컬러테마</div>
+      <div class="menu-item">계정 관리</div>
+    </nav>
+
+    <main class="content-area">
+      <div class="page-head">
+        <h1 class="page-title">설정</h1>
+        <span class="helper">근태 &gt; 설정 &gt; 간주근로</span>
+      </div>
+
+      <section class="setting-card">
+        <div class="card-head">간주근로 사용 설정</div>
+        <div class="card-body">
+          <div class="notice-banner stack">
+            <div class="line"><span>✓</span><span>간주근로 사용 시, 출장/외근 등 사업장 밖 근무에 대해 실제 출퇴근 기록 대신 정해진 근무시간으로 인정 처리합니다.</span></div>
+            <div class="line"><span>✓</span><span>미사용 시 기존과 동일하게 실제 출퇴근 기록을 기준으로 근무시간이 산정됩니다.</span></div>
+          </div>
+
+          <div class="setting-row">
+            <div class="key">사용 여부</div>
+            <div class="form-row" style="gap:32px">
+              <label class="opt" onclick="setUsing(true)"><span class="rdo" id="rdoUse"></span><span>사용</span></label>
+              <label class="opt" onclick="setUsing(false)"><span class="rdo" id="rdoUnuse"></span><span>미사용</span></label>
+            </div>
+          </div>
+
+          <div class="setting-row" id="typeSection">
+            <div class="key pad">적용 대상</div>
+            <div class="type-table-wrap">
+              <table class="ybe-table">
+                <thead>
+                  <tr><th style="text-align:left;padding-left:20px">유형</th><th>사용 여부</th><th>설정 옵션</th><th style="width:90px">상세 설정</th></tr>
+                </thead>
+                <tbody id="typeRows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card-actions">
+            <button class="btn positive" onclick="openTarget()">대상자 설정</button>
+            <div class="right">
+              <button class="btn outline point">변경 이력</button>
+              <button class="btn point">적용</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <p class="helper" style="max-width:900px;margin-top:14px;line-height:1.7">
+        간주 근로 일정이 있어도 시간외 신청은 가능하며, 중복되는 경우 관리자 업무현황에서 확인할 수 있습니다.
+      </p>
+    </main>
+  </div>
+
+  <!-- 대상자 설정 -->
+  <div class="modal-overlay" id="targetOverlay" hidden>
+    <div class="target-modal">
+      <div class="modal-header">
+        <h2>대상자 설정</h2>
+        <button class="modal-close" onclick="closeModals()">×</button>
+      </div>
+      <div class="target-cols">
+        <div class="panel">
+          <div class="panel-tab">조직도</div>
+          <div class="panel-body">
+            <div class="search-line">
+              <input class="input-pill" id="orgQuery" placeholder="이름/직책/부서명" oninput="onOrgQuery(this.value)" />
+            </div>
+            <div class="tree-row" onclick="toggleAll()"><span class="chk" id="chkAll"></span><span style="font-weight:800;color:var(--color-primary)">전체선택</span></div>
+            <div class="scroll-list" id="orgList"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:flex-end">
+            <div class="panel-tab">대상자</div>
+            <div class="period-field" style="margin-bottom:4px;width:190px">
+              <input id="targetQuery" placeholder="키워드 검색" oninput="onTargetQuery(this.value)" />
+              <span style="cursor:pointer;color:var(--color-text-muted)" onclick="clearTargetQuery()">×</span>
+              <span style="color:var(--color-primary);font-weight:800">⌕</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="list-meta">
+              <span style="font-weight:800;color:var(--color-text-muted)">대상자 <span id="targetCount">0</span>명</span>
+              <span class="helper">유효 기간 미지정 시 즉시 적용</span>
+            </div>
+            <div class="scroll-list" id="targetRows"></div>
+            <div class="period-notice" id="periodNotice">
+              <div class="head"><span>유효 기간 안내</span><button class="modal-close" style="font-size:15px" onclick="dismissNotice()">×</button></div>
+              <ul>
+                <li>설정한 유효 기간 동안 간주근로 전용 신청서 구성이 적용됩니다.</li>
+                <li>유효 기간 종료 시, 자동으로 기존 신청서 구성으로 전환됩니다.</li>
+                <li>유효 기간이 만료된 대상자는 예외 대상자 목록에서 자동으로 제외됩니다.</li>
+                <li>유효 기간 내 작성된 신청서는 기간 종료 이후에도 기존 설정을 기준으로 유지/처리됩니다.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn outline point3" onclick="closeModals()">취소</button>
+        <button class="btn point" onclick="closeModals()">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 간주근로 상세 설정 -->
+  <div class="modal-overlay" id="detailOverlay" hidden>
+    <div class="detail-modal">
+      <div class="head"><span>간주근로 상세 설정</span><button class="modal-close" onclick="closeModals()">×</button></div>
+      <div class="body">
+        <nav class="type-nav" id="typeNav"></nav>
+        <div class="detail-main">
+          <div class="use-toggle" id="useToggle" onclick="toggleActiveType()">
+            <span class="track"><span class="knob"></span></span>
+            <span id="useToggleLabel">간주근로 사용</span>
+          </div>
+          <div class="segment" id="scopeSegment" hidden>
+            <div class="seg" data-scope="domestic" onclick="setScope('domestic')">국내 출장</div>
+            <div class="seg" data-scope="overseas" onclick="setScope('overseas')">해외 출장</div>
+          </div>
+          <div class="option-list" id="optionList"></div>
+          <p class="helper" style="line-height:1.7">옵션은 최대 <span id="maxOptions">5</span>건까지 등록할 수 있습니다. 사용자 전자결재 진행 시 해당 유형을 선택하면 입력한 메모가 안내글로 노출됩니다.</p>
+        </div>
+      </div>
+      <div class="foot">
+        <button class="btn outline point3" onclick="closeModals()">취소</button>
+        <button class="btn point" onclick="closeModals()">저장</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ------------------------------------------------------------------
+   간주근로 사용 설정 — 프로토타입 상태
+   canonical_key 후보: deemed_work.use / deemed_work.type.* / deemed_work.option.*
+------------------------------------------------------------------ */
+var MAX_OPTIONS = 5;
+
+var state = {
+  using: true,
+  modal: null,                 // 'target' | 'detail' | null
+  activeType: 'trip',
+  scope: 'domestic',           // 출장 전용
+  showNotice: true,
+  orgQuery: '',
+  targetQuery: '',
+  seq: 100,
+  types: [
+    { key: 'trip', label: '출장', on: true, scoped: true },
+    { key: 'field', label: '외근', on: true, scoped: false },
+    { key: 'dispatch', label: '파견', on: false, scoped: false },
+    { key: 'home', label: '재택', on: true, scoped: false }
+  ],
+  options: {
+    'trip:domestic': [
+      { id: 1, kind: 'range', start: '09:00', end: '18:00', memo: '', open: false },
+      { id: 2, kind: 'unit', hours: '10', from: '09:00', memo: '', open: false },
+      { id: 3, kind: 'none', memo: '', open: false }
+    ],
+    'trip:overseas': [
+      { id: 4, kind: 'unit', hours: '10', from: '09:00', memo: '', open: false },
+      { id: 5, kind: 'range', start: '10:00', end: '19:00', memo: '', open: false }
+    ],
+    'field:default': [
+      { id: 6, kind: 'range', start: '09:00', end: '18:00', memo: '', open: false },
+      { id: 7, kind: 'unit', hours: '8', from: '09:00', memo: '', open: false },
+      { id: 8, kind: 'range', start: '13:00', end: '18:00', memo: '', open: false }
+    ],
+    'dispatch:default': [],
+    'home:default': [
+      { id: 9, kind: 'range', start: '09:00', end: '18:00', memo: '', open: false },
+      { id: 10, kind: 'unit', hours: '8', from: '10:00', memo: '', open: false }
+    ]
+  },
+  org: [
+    { id: 1, name: '박대형', rank: '과장/팀장', dept: '경영부/운영팀' },
+    { id: 2, name: '이광호', rank: '과장', dept: '경영부/운영팀' },
+    { id: 3, name: '권태성', rank: '대리/팀장', dept: '경영부/운영팀' },
+    { id: 4, name: '이이름', rank: '대리', dept: '경영부/운영팀' },
+    { id: 5, name: '나윤아', rank: '대리', dept: '경영부/운영팀' },
+    { id: 6, name: '김일련', rank: '대리', dept: '경영부/운영팀' },
+    { id: 7, name: '배동현', rank: '사원/팀원', dept: '경영부/운영팀' },
+    { id: 8, name: '김모모', rank: '사원', dept: '경영부/운영팀' },
+    { id: 9, name: '이소현', rank: '사원/파트장', dept: '경영부/운영팀' },
+    { id: 10, name: '김쇠현', rank: '사원/파트장', dept: '경영부/운영팀' },
+    { id: 11, name: '박성현', rank: '사원/파트장', dept: '경영부/운영팀' }
+  ],
+  targets: [
+    { id: 9, from: '2027-08-18', to: '2027-09-30' },
+    { id: 10, from: '', to: '' },
+    { id: 11, from: '2027-08-18', to: '2027-09-30' }
+  ]
+};
+
+var TIMES = (function () {
+  var out = [], h, m;
+  for (h = 0; h < 24; h++) for (m = 0; m < 2; m++) out.push(('0' + h).slice(-2) + ':' + (m ? '30' : '00'));
+  return out;
+})();
+var HOURS = (function () { var out = [], i; for (i = 1; i <= 12; i++) out.push(String(i)); return out; })();
+var KIND_DEFAULT = { range: { start: '09:00', end: '18:00' }, unit: { hours: '8', from: '09:00' }, none: {} };
+
+function keyOf(typeKey, scope) {
+  var t = typeMeta(typeKey);
+  return t.scoped ? typeKey + ':' + scope : typeKey + ':default';
+}
+function typeMeta(key) { return state.types.filter(function (t) { return t.key === key; })[0]; }
+function rowsOf(key) { return state.options[key] || []; }
+function optionCount(typeKey) {
+  var t = typeMeta(typeKey);
+  return t.scoped
+    ? rowsOf(typeKey + ':domestic').length + rowsOf(typeKey + ':overseas').length
+    : rowsOf(typeKey + ':default').length;
+}
+function minutes(t) { var p = (t || '09:00').split(':'); return (+p[0]) * 60 + (+p[1]); }
+function totalLabel(r) {
+  var d = minutes(r.end) - minutes(r.start);
+  if (d < 0) d += 1440;
+  var h = Math.floor(d / 60), m = d % 60;
+  return m ? h + '시간 ' + m + '분' : h + '시간';
+}
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function selectHtml(list, value, onchange) {
+  return '<select onchange="' + onchange + '">' + list.map(function (v) {
+    return '<option value="' + v + '"' + (v === value ? ' selected' : '') + '>' + v + '</option>';
+  }).join('') + '</select>';
+}
+
+/* ---------- 사용 여부 / 적용 대상 ---------- */
+function setUsing(v) { state.using = v; render(); }
+
+function renderTypeRows() {
+  document.getElementById('rdoUse').className = 'rdo' + (state.using ? ' on' : '');
+  document.getElementById('rdoUnuse').className = 'rdo' + (state.using ? '' : ' on');
+  document.getElementById('typeSection').hidden = !state.using;
+
+  document.getElementById('typeRows').innerHTML = state.types.map(function (t) {
+    var n = optionCount(t.key);
+    var badge = (t.on && n > 0)
+      ? '<span class="badge cyan">옵션 ' + n + '개</span>'
+      : '<span class="badge status-scheduled">-</span>';
+    return '<tr>' +
+      '<td style="text-align:left;padding-left:20px">' + t.label + '</td>' +
+      '<td style="color:' + (t.on ? 'var(--color-secondary)' : 'var(--color-text-muted)') + '">' + (t.on ? '사용' : '미사용') + '</td>' +
+      '<td>' + badge + '</td>' +
+      '<td><button class="icon-btn" title="상세 설정" onclick="openDetail(\'' + t.key + '\')">⚙</button></td>' +
+      '</tr>';
+  }).join('');
+}
+
+/* ---------- 대상자 설정 모달 ---------- */
+function openTarget() { state.modal = 'target'; render(); }
+function closeModals() { state.modal = null; render(); }
+function onOrgQuery(v) { state.orgQuery = v; render(); }
+function onTargetQuery(v) { state.targetQuery = v; render(); }
+function clearTargetQuery() { state.targetQuery = ''; render(); }
+function dismissNotice() { state.showNotice = false; render(); }
+function isPicked(id) { return state.targets.some(function (t) { return t.id === id; }); }
+function orgVisible() {
+  var q = state.orgQuery.trim();
+  return state.org.filter(function (m) { return (m.name + m.rank + m.dept).indexOf(q) >= 0; });
+}
+function toggleMember(id) {
+  state.targets = isPicked(id)
+    ? state.targets.filter(function (t) { return t.id !== id; })
+    : state.targets.concat([{ id: id, from: '', to: '' }]);
+  render();
+}
+function toggleAll() {
+  var ids = orgVisible().map(function (m) { return m.id; });
+  var all = ids.every(isPicked);
+  if (all) {
+    state.targets = state.targets.filter(function (t) { return ids.indexOf(t.id) < 0; });
+  } else {
+    ids.filter(function (id) { return !isPicked(id); }).forEach(function (id) {
+      state.targets.push({ id: id, from: '', to: '' });
+    });
+  }
+  render();
+}
+function removeTarget(id) { state.targets = state.targets.filter(function (t) { return t.id !== id; }); render(); }
+function setPeriod(id, field, value) {
+  state.targets.forEach(function (t) { if (t.id === id) t[field] = value; });
+  document.getElementById('targetCount').textContent = visibleTargets().length;
+}
+function visibleTargets() {
+  var q = state.targetQuery.trim();
+  var joined = state.targets.map(function (t) {
+    var m = state.org.filter(function (o) { return o.id === t.id; })[0] || {};
+    return { id: t.id, name: m.name, rank: m.rank, dept: m.dept, from: t.from, to: t.to };
+  });
+  return q ? joined.filter(function (t) { return (t.name + t.rank + t.dept).indexOf(q) >= 0; }) : joined;
+}
+
+function renderTargetModal() {
+  document.getElementById('targetOverlay').hidden = state.modal !== 'target';
+  if (state.modal !== 'target') return;
+
+  var vis = orgVisible();
+  document.getElementById('orgQuery').value = state.orgQuery;
+  document.getElementById('targetQuery').value = state.targetQuery;
+  document.getElementById('chkAll').className = 'chk' + (vis.length && vis.every(function (m) { return isPicked(m.id); }) ? ' on' : '');
+
+  document.getElementById('orgList').innerHTML =
+    '<div class="tree-row dept"><span class="chk light"></span>운영팀/본사 (' + state.org.length + ')</div>' +
+    (vis.length ? vis.map(function (m) {
+      var on = isPicked(m.id);
+      return '<div class="tree-row member' + (on ? ' on' : '') + '" onclick="toggleMember(' + m.id + ')">' +
+        '<span class="chk' + (on ? ' on' : ' light') + '"></span>' + esc(m.name + ' ' + m.rank) + '</div>';
+    }).join('') : '<div class="empty-state" style="padding:24px 0">검색 결과가 없습니다.</div>');
+
+  var rows = visibleTargets();
+  document.getElementById('targetCount').textContent = rows.length;
+  document.getElementById('targetRows').innerHTML = rows.length ? rows.map(function (t, i) {
+    return '<div class="target-row">' +
+      '<span class="no">' + (i + 1) + '</span>' +
+      '<span class="nm">' + esc(t.name) + '</span>' +
+      '<span class="rk">' + esc(t.rank) + '</span>' +
+      '<span class="period-field">' +
+        '<input type="date" value="' + (t.from || '') + '" onchange="setPeriod(' + t.id + ',\'from\',this.value)" />' +
+        '<span class="helper">~</span>' +
+        '<input type="date" value="' + (t.to || '') + '" onchange="setPeriod(' + t.id + ',\'to\',this.value)" />' +
+      '</span>' +
+      '<button class="modal-close" style="font-size:15px" onclick="removeTarget(' + t.id + ')">×</button>' +
+      '</div>';
+  }).join('') : '<div class="empty-state" style="padding:34px 0">조건에 맞는 대상자가 없습니다.</div>';
+
+  document.getElementById('periodNotice').hidden = !state.showNotice;
+}
+
+/* ---------- 상세 설정 모달 ---------- */
+function openDetail(typeKey) { state.modal = 'detail'; state.activeType = typeKey; render(); }
+function setScope(s) { state.scope = s; render(); }
+function toggleActiveType() { var t = typeMeta(state.activeType); t.on = !t.on; render(); }
+function addOption() {
+  var k = keyOf(state.activeType, state.scope);
+  if (rowsOf(k).length >= MAX_OPTIONS) return;
+  state.seq += 1;
+  state.options[k] = rowsOf(k).concat([{ id: state.seq, kind: 'none', memo: '', open: false }]);
+  render();
+}
+function patchOption(id, next) {
+  var k = keyOf(state.activeType, state.scope);
+  state.options[k] = rowsOf(k).map(function (r) { return r.id === id ? Object.assign({}, r, next) : r; });
+  render();
+}
+function setKind(id, kind) { patchOption(id, Object.assign({ kind: kind }, KIND_DEFAULT[kind])); }
+function removeOption(id) {
+  var k = keyOf(state.activeType, state.scope);
+  state.options[k] = rowsOf(k).filter(function (r) { return r.id !== id; });
+  render();
+}
+function toggleMemo(id) {
+  var k = keyOf(state.activeType, state.scope);
+  var row = rowsOf(k).filter(function (r) { return r.id === id; })[0];
+  patchOption(id, { open: !row.open });
+}
+function setMemo(id, v) {
+  var k = keyOf(state.activeType, state.scope);
+  state.options[k] = rowsOf(k).map(function (r) { return r.id === id ? Object.assign({}, r, { memo: v }) : r; });
+}
+
+function renderDetailModal() {
+  document.getElementById('detailOverlay').hidden = state.modal !== 'detail';
+  if (state.modal !== 'detail') return;
+
+  var active = typeMeta(state.activeType);
+  document.getElementById('maxOptions').textContent = MAX_OPTIONS;
+
+  document.getElementById('typeNav').innerHTML = state.types.map(function (t) {
+    return '<div class="item' + (t.key === state.activeType ? ' on' : '') + '" onclick="openDetail(\'' + t.key + '\')">' +
+      '<span>' + t.label + '</span><span class="state' + (t.on ? ' use' : '') + '">' + (t.on ? '사용' : '미사용') + '</span></div>';
+  }).join('');
+
+  document.getElementById('useToggle').className = 'use-toggle' + (active.on ? ' on' : '');
+  document.getElementById('useToggleLabel').textContent = active.label + ' — 간주근로 사용';
+
+  var seg = document.getElementById('scopeSegment');
+  seg.hidden = !active.scoped;
+  Array.prototype.forEach.call(seg.querySelectorAll('.seg'), function (el) {
+    el.className = 'seg' + (el.getAttribute('data-scope') === state.scope ? ' on' : '');
+  });
+
+  var k = keyOf(state.activeType, state.scope);
+  var rows = rowsOf(k);
+  document.getElementById('optionList').innerHTML = rows.map(function (r) {
+    var fields = '';
+    if (r.kind === 'range') {
+      fields = selectHtml(TIMES, r.start, 'patchOption(' + r.id + ',{start:this.value})') +
+        '<span>~</span>' + selectHtml(TIMES, r.end, 'patchOption(' + r.id + ',{end:this.value})') +
+        '<span class="helper">총 ' + totalLabel(r) + '</span>';
+    } else if (r.kind === 'unit') {
+      fields = selectHtml(HOURS, r.hours, 'patchOption(' + r.id + ',{hours:this.value})') + '<span>시간</span>' +
+        '<span style="width:1px;height:18px;background:#E7E9F2"></span>' +
+        selectHtml(TIMES, r.from, 'patchOption(' + r.id + ',{from:this.value})') + '<span>부터 근무 시작</span>';
+    } else {
+      fields = '<span class="helper">유형을 선택하면 설정 항목이 표시됩니다.</span>';
+    }
+    return '<div class="option-row">' +
+      '<div class="line">' +
+        '<span class="caret" onclick="toggleMemo(' + r.id + ')">' + (r.open ? '▼' : '▶') + '</span>' +
+        '<select onchange="setKind(' + r.id + ',this.value)">' +
+          '<option value="none"' + (r.kind === 'none' ? ' selected' : '') + '>유형 선택</option>' +
+          '<option value="range"' + (r.kind === 'range' ? ' selected' : '') + '>시간 범위</option>' +
+          '<option value="unit"' + (r.kind === 'unit' ? ' selected' : '') + '>사용 단위</option>' +
+        '</select>' +
+        '<span class="fields">' + fields + '</span>' +
+        '<button class="modal-close" style="font-size:15px" onclick="removeOption(' + r.id + ')">×</button>' +
+      '</div>' +
+      (r.open ? '<div class="memo"><input maxlength="50" value="' + esc(r.memo) + '" placeholder="사용자에게 노출할 안내 내용 입력해주세요 (최대 50자)" oninput="setMemo(' + r.id + ',this.value)" /></div>' : '') +
+      '</div>';
+  }).join('') + (rows.length < MAX_OPTIONS ? '<div class="add-option" onclick="addOption()">+ 옵션 추가</div>' : '');
+}
+
+function render() {
+  renderTypeRows();
+  renderTargetModal();
+  renderDetailModal();
+}
+render();
+</script>
+</body>
+</html>
